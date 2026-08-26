@@ -100,6 +100,25 @@ never queries another service's DB.
 | Bookmark Service | Bookmarked records, cached in Redis |
 | Diagnosis Service | Nothing persisted — reads live from the external Diagnosis API |
 
+## Key decisions
+
+These were settled during architecture review — see the linked ADR for the reasoning behind
+each:
+
+- [ADR-0001](./adr/0001-async-registration-via-kafka.md) — registration hands off from
+  UserProfile to Authentication via Kafka, not a direct call.
+- [ADR-0002](./adr/0002-centralized-jwt-validation-at-gateway.md) — JWT validation happens once,
+  at the Gateway, not in every service.
+- [ADR-0003](./adr/0003-diagnosis-service-stateless-no-db.md) — Diagnosis Service stays
+  stateless, no local database; it calls the external API live.
+- [ADR-0004](./adr/0004-registration-race-handled-by-generic-login-error.md) — a login attempted
+  before registration finishes processing just gets a generic "invalid credentials" error.
+- [ADR-0005](./adr/0005-stateless-jwt-validation-at-gateway.md) — the Gateway validates JWTs
+  itself with a shared key, no network call to Authentication per request.
+
+Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
+repopulates it — full detail lands in the Redis doc once written.
+
 ## Where to go deeper
 
 - [`00-infrastructure/`](./00-infrastructure/README.md) — build/run notes for Eureka, API
@@ -111,7 +130,7 @@ never queries another service's DB.
 
 ## Status
 
-🚧 This is the first pass at the architecture and has **not yet been through an architecture
-review**. Service boundaries, the Kafka flow, and the DB-per-service split shown above are
-proposals based on the case study, not final decisions — expect this diagram to change once
-we grill it.
+✅ The system-wide shape above (service boundaries, sync vs. async communication, auth flow,
+data ownership) has been through architecture review — see **Key decisions**. Deeper,
+service-specific decisions (exact DB technology per service, Kafka topic/payload schemas, API
+contracts) are still open and will be grilled when each service's own doc is drafted.
