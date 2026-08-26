@@ -1,62 +1,88 @@
 # System Architecture — Overview
 
-This is the single picture of the whole system: every piece from the client in the browser
-down to the databases each service owns. Read this first before opening any individual
-service doc — those go one level deeper into a single box on this diagram.
+One diagram trying to show every kind of connection at once (requests, discovery, events, data)
+gets noisy fast. So this is broken into four small diagrams, each answering one question. Read
+this before opening any individual service doc — those go one level deeper into a single box
+shown here.
 
-## Diagram
+## 1. Request flow — what happens when the client calls the backend
+
+The path a normal API call takes. This is the one to look at first.
 
 ```mermaid
-flowchart TD
-    Client["React Frontend<br/>(Client)"]
+flowchart LR
+    Client["React Frontend"]
+    Gateway["API Gateway<br/>routes · checks JWT · CORS"]
+    UserProfile["UserProfile Service"]
+    Auth["Authentication Service"]
+    Diagnosis["Diagnosis Service"]
+    Bookmark["Bookmark Service"]
 
-    subgraph Edge["Edge"]
-        Gateway["API Gateway<br/>routing · JWT check · CORS"]
-    end
+    Client -- "REST call" --> Gateway
+    Gateway --> UserProfile
+    Gateway --> Auth
+    Gateway --> Diagnosis
+    Gateway --> Bookmark
+```
 
-    subgraph Infra["Shared Infrastructure"]
-        Eureka["Eureka<br/>Service Discovery"]
-        Kafka["Kafka<br/>Message Bus"]
-        Redis[("Redis<br/>Cache")]
-    end
+The client only ever talks to the Gateway — it never knows a service's real address.
 
-    subgraph Services["Backend Services"]
-        UserProfile["UserProfile Service"]
-        Auth["Authentication Service"]
-        Diagnosis["Diagnosis Service"]
-        Bookmark["Bookmark Service"]
-    end
+## 2. Service discovery — how the Gateway finds a service
 
-    subgraph Data["Databases (one per service)"]
-        UserProfileDB[("UserProfile DB")]
-        AuthDB[("Auth DB")]
-        BookmarkDB[("Bookmark DB")]
-    end
+Services don't have fixed addresses; they register themselves and the Gateway looks them up.
 
-    ExternalAPI["External Diagnosis API<br/>(json-server, port 3232)"]
+```mermaid
+flowchart LR
+    Eureka(["Eureka<br/>Service Discovery"])
+    Gateway["API Gateway"]
+    UserProfile["UserProfile Service"]
+    Auth["Authentication Service"]
+    Diagnosis["Diagnosis Service"]
+    Bookmark["Bookmark Service"]
 
-    Client -- "REST calls" --> Gateway
-    Gateway -- "routes request" --> UserProfile
-    Gateway -- "routes request" --> Auth
-    Gateway -- "routes request" --> Diagnosis
-    Gateway -- "routes request" --> Bookmark
+    UserProfile -. registers .-> Eureka
+    Auth -. registers .-> Eureka
+    Diagnosis -. registers .-> Eureka
+    Bookmark -. registers .-> Eureka
+    Gateway -. "looks up address" .-> Eureka
+```
 
-    UserProfile -. "registers with" .-> Eureka
-    Auth -. "registers with" .-> Eureka
-    Diagnosis -. "registers with" .-> Eureka
-    Bookmark -. "registers with" .-> Eureka
-    Gateway -. "looks up services via" .-> Eureka
+Every service registers with Eureka on startup; the Gateway asks Eureka "where is X right now?"
+instead of using a hardcoded URL.
+
+## 3. Async messaging — the one event flow in the system
+
+Today there's exactly one thing that happens via an event instead of a direct call: registration.
+
+```mermaid
+flowchart LR
+    UserProfile["UserProfile Service"]
+    Kafka(["Kafka<br/>Message Bus"])
+    Auth["Authentication Service"]
 
     UserProfile -- "publishes new-user credentials" --> Kafka
-    Kafka -- "delivers credentials to" --> Auth
-
-    UserProfile --> UserProfileDB
-    Auth --> AuthDB
-    Bookmark --> BookmarkDB
-    Bookmark -- "read/write cache" --> Redis
-
-    Diagnosis -- "fetches records" --> ExternalAPI
+    Kafka -- "delivers to" --> Auth
 ```
+
+See [ADR-0001](./adr/0001-async-registration-via-kafka.md) for why this is async instead of a
+direct call, and [ADR-0004](./adr/0004-registration-race-handled-by-generic-login-error.md) for
+how the small timing gap is handled.
+
+## 4. Data ownership — what each service persists, and where
+
+Each service owns its own storage. No service reaches into another's database.
+
+```mermaid
+flowchart LR
+    UserProfile["UserProfile Service"] --> UserProfileDB[("UserProfile DB")]
+    Auth["Authentication Service"] --> AuthDB[("Auth DB")]
+    Bookmark["Bookmark Service"] --> BookmarkDB[("Bookmark DB")]
+    Bookmark -- "cache" --> Redis[("Redis")]
+    Diagnosis["Diagnosis Service"] -- "live fetch, no storage" --> ExternalAPI["External Diagnosis API<br/>(json-server, port 3232)"]
+```
+
+Diagnosis Service is the odd one out: it has no database of its own — see
+[ADR-0003](./adr/0003-diagnosis-service-stateless-no-db.md).
 
 ## What each piece is for
 
