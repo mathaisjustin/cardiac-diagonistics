@@ -52,8 +52,10 @@ until it's been through an architecture review.
 This repo is documentation-only. Each section below is being written bottom-up — foundational
 pieces first, so later docs can build on ones already agreed. Links go live as each doc lands.
 
-- **[00-infrastructure](./00-infrastructure/README.md)** — the shared backbone: whole-system
-  architecture diagram, Eureka, API Gateway, Kafka, Redis.
+- **[ARCHITECTURE.md](./ARCHITECTURE.md)** — the whole-system picture: client → API Gateway →
+  services → databases, with a diagram. Start here before any individual doc.
+- **[00-infrastructure](./00-infrastructure/README.md)** — build/run notes for each shared
+  infrastructure piece: Eureka, API Gateway, Kafka, Redis.
 - **01-services** — one folder per business service: User Profile, Authentication, Diagnosis,
   Bookmark.
 - **02-frontend** — the React app.
