@@ -74,9 +74,9 @@ Each service owns its own storage. No service reaches into another's database.
 
 ```mermaid
 flowchart LR
-    UserProfile["UserProfile Service"] --> UserProfileDB[("UserProfile DB")]
-    Auth["Authentication Service"] --> AuthDB[("Auth DB")]
-    Bookmark["Bookmark Service"] --> BookmarkDB[("Bookmark DB")]
+    UserProfile["UserProfile Service"] --> UserProfileDB[("UserProfile DB<br/>MySQL")]
+    Auth["Authentication Service"] --> AuthDB[("Auth DB<br/>MySQL")]
+    Bookmark["Bookmark Service"] --> BookmarkDB[("Bookmark DB<br/>MySQL")]
     Bookmark -- "cache" --> Redis[("Redis")]
     Diagnosis["Diagnosis Service"] -- "live fetch, no storage" --> ExternalAPI["External Diagnosis API<br/>(json-server, port 3232)"]
 ```
@@ -88,8 +88,8 @@ Diagnosis Service is the odd one out: it has no database of its own — see
 
 | Component | Role |
 |---|---|
-| **React Frontend** | The only thing the end user sees. Talks to the backend exclusively through the API Gateway — never calls a service directly. |
-| **API Gateway** | Single front door for every request. Validates the JWT on incoming calls, applies CORS rules, and routes each request to the right service by asking Eureka where that service currently lives. |
+| **React Frontend** | The only thing the end user sees. Built with Vite + React + TanStack Query/Router + MUI. Talks to the backend exclusively through the API Gateway — never calls a service directly. |
+| **API Gateway** | Single front door for every request, built with Spring Cloud Gateway. Validates the JWT on incoming calls, decides which routes even require one, applies CORS rules, and routes each request to the right service by asking Eureka where that service currently lives. |
 | **Eureka (Service Discovery)** | A directory of "who's alive and where." Every service registers itself on startup; the Gateway (and services that call each other) look up addresses here instead of hardcoding them. |
 | **Kafka (Message Bus)** | Carries events between services that shouldn't call each other directly. Today's only flow: UserProfile publishes new-user credentials when someone registers, and Authentication consumes them to create the login record. |
 | **Redis (Cache)** | Speeds up reads for data that's requested often and changes rarely — currently a user's bookmark list, so the Bookmark Service doesn't hit its database on every page load. |
@@ -119,12 +119,12 @@ Each service owns its own data — no service reaches into another service's dat
 If a service needs data it doesn't own, it asks for it (via the Gateway/Eureka, or via Kafka),
 never queries another service's DB.
 
-| Service | Owns |
-|---|---|
-| UserProfile Service | User profile/personal details |
-| Authentication Service | Credentials, sessions, JWT state |
-| Bookmark Service | Bookmarked records, cached in Redis |
-| Diagnosis Service | Nothing persisted — reads live from the external Diagnosis API |
+| Service | Owns | Storage |
+|---|---|---|
+| UserProfile Service | User profile/personal details | MySQL |
+| Authentication Service | Credentials, sessions, JWT state | MySQL |
+| Bookmark Service | Bookmarked records, cached in Redis | MySQL + Redis |
+| Diagnosis Service | Nothing persisted — reads live from the external Diagnosis API | — |
 
 ## Key decisions
 
@@ -141,6 +141,14 @@ each:
   before registration finishes processing just gets a generic "invalid credentials" error.
 - [ADR-0005](./00-infrastructure/adr/0005-stateless-jwt-validation-at-gateway.md) — the Gateway validates JWTs
   itself with a shared key, no network call to Authentication per request.
+- [ADR-0006](./00-infrastructure/adr/0006-frontend-stack-vite-react-tanstack-mui.md) — frontend
+  stack: Vite + React + TanStack Query/Router + MUI, no Next.js/SSR.
+- [ADR-0007](./00-infrastructure/adr/0007-backend-build-and-gateway-tooling.md) — backend build
+  tool (Maven) and API Gateway implementation (Spring Cloud Gateway).
+- [ADR-0008](./00-infrastructure/adr/0008-mysql-as-database-engine.md) — MySQL as the database
+  engine for every service that owns data.
+- [ADR-0009](./00-infrastructure/adr/0009-route-level-authorization-at-gateway.md) — the Gateway
+  also enforces which routes require auth at all, not just token validity.
 
 Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
 repopulates it — full detail lands in the Redis doc once written.

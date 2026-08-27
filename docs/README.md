@@ -35,17 +35,18 @@ stories and acceptance criteria behind these features.
 
 | Layer | Choice | Why |
 |---|---|---|
-| Frontend | React | Talks to the backend only through the API Gateway. |
-| Backend services | Java + Spring Boot | One service per business responsibility (see below). |
+| Frontend | Vite + React + TanStack Query/Router + MUI | Pure SPA behind the Gateway — no SSR needed; MUI gives ready table/form components for a data-heavy app. |
+| Backend services | Java + Spring Boot, built with Maven | One service per business responsibility (see below). |
+| Database | MySQL (one instance per service) | One consistent engine across UserProfile, Authentication, and Bookmark. |
 | Service discovery | Eureka | Services find each other by name instead of hardcoded addresses. |
-| Edge/routing | API Gateway | Single entry point for the frontend; validates JWTs, routes to the right service. |
+| Edge/routing | Spring Cloud Gateway | Single entry point for the frontend; validates JWTs and enforces which routes need auth, routes to the right service. |
 | Async messaging | Kafka | Decouples services that need to react to events (e.g. a new registration) without calling each other directly. |
 | Caching | Redis | Speeds up frequently-read data (e.g. bookmarks). |
-| Auth | JWT | Stateless, signed tokens issued at login and checked on every request. |
+| Auth | JWT (jjwt), validated centrally at the Gateway | Stateless, signed tokens issued at login; the Gateway checks them once instead of every service repeating that logic. |
 | Deployment | Docker Compose | One command brings up every service together for local/dev use. |
 
-Full reasoning behind these choices lives in the individual docs below — nothing here is final
-until it's been through an architecture review.
+Full reasoning behind these choices lives in [`ARCHITECTURE.md`](./ARCHITECTURE.md) and the ADRs
+under [`00-infrastructure/adr/`](./00-infrastructure/adr/).
 
 ## Map of the docs
 
