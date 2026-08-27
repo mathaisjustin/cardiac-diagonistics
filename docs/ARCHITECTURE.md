@@ -64,8 +64,8 @@ flowchart LR
     Kafka -- "delivers to" --> Auth
 ```
 
-See [ADR-0001](./adr/0001-async-registration-via-kafka.md) for why this is async instead of a
-direct call, and [ADR-0004](./adr/0004-registration-race-handled-by-generic-login-error.md) for
+See [ADR-0001](./00-infrastructure/adr/0001-async-registration-via-kafka.md) for why this is async instead of a
+direct call, and [ADR-0004](./00-infrastructure/adr/0004-registration-race-handled-by-generic-login-error.md) for
 how the small timing gap is handled.
 
 ## 4. Data ownership — what each service persists, and where
@@ -82,7 +82,7 @@ flowchart LR
 ```
 
 Diagnosis Service is the odd one out: it has no database of its own — see
-[ADR-0003](./adr/0003-diagnosis-service-stateless-no-db.md).
+[ADR-0003](./00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md).
 
 ## What each piece is for
 
@@ -131,15 +131,15 @@ never queries another service's DB.
 These were settled during architecture review — see the linked ADR for the reasoning behind
 each:
 
-- [ADR-0001](./adr/0001-async-registration-via-kafka.md) — registration hands off from
+- [ADR-0001](./00-infrastructure/adr/0001-async-registration-via-kafka.md) — registration hands off from
   UserProfile to Authentication via Kafka, not a direct call.
-- [ADR-0002](./adr/0002-centralized-jwt-validation-at-gateway.md) — JWT validation happens once,
+- [ADR-0002](./00-infrastructure/adr/0002-centralized-jwt-validation-at-gateway.md) — JWT validation happens once,
   at the Gateway, not in every service.
-- [ADR-0003](./adr/0003-diagnosis-service-stateless-no-db.md) — Diagnosis Service stays
+- [ADR-0003](./00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md) — Diagnosis Service stays
   stateless, no local database; it calls the external API live.
-- [ADR-0004](./adr/0004-registration-race-handled-by-generic-login-error.md) — a login attempted
+- [ADR-0004](./00-infrastructure/adr/0004-registration-race-handled-by-generic-login-error.md) — a login attempted
   before registration finishes processing just gets a generic "invalid credentials" error.
-- [ADR-0005](./adr/0005-stateless-jwt-validation-at-gateway.md) — the Gateway validates JWTs
+- [ADR-0005](./00-infrastructure/adr/0005-stateless-jwt-validation-at-gateway.md) — the Gateway validates JWTs
   itself with a shared key, no network call to Authentication per request.
 
 Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
