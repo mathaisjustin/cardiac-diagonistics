@@ -1,4 +1,13 @@
+---
+status: superseded by ADR-0010
+---
+
 # Registration confirms on Kafka publish-ack; a too-early login just gets a generic error
+
+> **Superseded by [ADR-0010](./0010-registration-owned-by-auth-single-direction-kafka.md).** Once
+> Authentication owns registration and stores the credential synchronously before responding, the
+> race this ADR handles can't happen anymore — a user can never attempt to log in before their
+> credential exists. Kept here for history.
 
 Following ADR-0001 (registration is async via Kafka), UserProfile Service marks registration
 "successful" as soon as its Kafka publish is acknowledged — it does not wait for Authentication
