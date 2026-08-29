@@ -1,5 +1,14 @@
 # Authentication Service
 
+A **standalone Spring Boot application** (Java, built with Maven per
+[ADR-0007](../../00-infrastructure/adr/0007-backend-build-and-gateway-tooling.md)) — its own
+codebase, its own build, its own JVM process, its own container in `docker-compose.yml` (see
+[`../../folder-structure.md`](../../folder-structure.md)). It runs independently of every other
+service; the only things connecting it to the rest of the system are the API Gateway routing
+requests to it, Eureka so the Gateway can find it, its own MySQL database
+([ADR-0008](../../00-infrastructure/adr/0008-mysql-as-database-engine.md)), and the one Kafka
+topic it publishes to.
+
 Owns identity: who a user is, their credentials, and proving that identity to the rest of the
 system via JWTs. Since [ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md),
 this service also owns **registration** — it's the entry point for creating a new user, not
