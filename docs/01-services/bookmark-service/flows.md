@@ -24,10 +24,10 @@ sequenceDiagram
         B-->>FE: 200 success (no-op, no duplicate)
     else not yet bookmarked
         B->>D: GET /diagnosis/{id} (direct call, via Eureka)
-        D-->>B: record data, or 404
+        D-->>B: record data, or 404 RECORD_NOT_FOUND
 
         alt record not found
-            B-->>FE: error — can't bookmark
+            B-->>FE: 404 RECORD_NOT_FOUND
         else record found
             B->>DB: save snapshot (gender, age, bp, painType, treatment)
             B->>R: invalidate this user's cached bookmark list

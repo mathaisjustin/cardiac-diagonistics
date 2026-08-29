@@ -8,12 +8,12 @@ One table, in its own MySQL database.
 |---|---|---|
 | `id` | identifier (PK) | The bookmark's own ID (not the diagnosis record's). |
 | `user_id` | identifier | From `X-User-Id` at creation time — whose bookmark this is. |
-| `diagnosis_record_id` | identifier | The external Diagnosis API's record ID — links back to the full record if the user clicks through. |
-| `gender` | string | Snapshot field, captured at bookmark time. |
-| `age` | number | Snapshot field. |
-| `bp` | string | Snapshot field. |
-| `pain_type` | string | Snapshot field. |
-| `treatment` | string | Snapshot field. |
+| `diagnosis_record_id` | `VARCHAR(50)` | The external Diagnosis API's record ID, stored as a string — links back to the full record if the user clicks through. Not assumed to be numeric, since it's controlled by an external system this project doesn't own. |
+| `gender` | `VARCHAR(20)` | Snapshot field, captured at bookmark time. |
+| `age` | `INT` | Snapshot field. |
+| `bp` | `VARCHAR(20)` | Snapshot field. |
+| `pain_type` | `VARCHAR(50)` | Snapshot field. |
+| `treatment` | `VARCHAR(100)` | Snapshot field. |
 | `created_at` | timestamp | When bookmarked. |
 
 Snapshot fields match US-04's list-view fields — enough to show a useful bookmarks list without
