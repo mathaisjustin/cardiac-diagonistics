@@ -9,8 +9,8 @@ reads or writes it directly.
 | Field | Type | Notes |
 |---|---|---|
 | `id` | identifier (PK) | Generated at registration. This **is** the canonical user ID used system-wide — it's what gets published to Kafka for UserProfile to key its profile record on, and what goes inside the JWT. |
-| `email` | string, unique | The login identity. Registration is rejected if this already exists. |
-| `password_hash` | string | A bcrypt hash — the plaintext password is never stored, never logged. |
+| `email` | `VARCHAR(255)`, unique | The login identity. Registration is rejected if this already exists. 255 is the standard practical max for an email address. |
+| `password_hash` | `VARCHAR(60)` | A bcrypt hash — always exactly 60 characters in bcrypt's standard encoded form, regardless of password length. The plaintext password is never stored, never logged. |
 | `created_at` | timestamp | When the account was created. |
 
 That's it for this phase — no `status`, `roles`, or session/token tables. There's no

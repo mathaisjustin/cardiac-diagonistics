@@ -62,8 +62,9 @@ pieces first, so later docs can build on ones already agreed. Links go live as e
 - **01-services** — one folder per business service: User Profile, Authentication, Diagnosis,
   Bookmark.
 - **02-frontend** — the React app.
-- **03-cross-cutting** — concerns that touch every service: security/JWT, logging, testing
-  strategy.
+- **03-cross-cutting** — concerns that touch every service: [`api-conventions.md`](./03-cross-cutting/api-conventions.md)
+  (shared error shape and status codes every service's API follows), security/JWT, logging,
+  testing strategy.
 - **04-deployment** — the Docker Compose setup that brings every service up with one command.
 - **[05-backlog/product-backlog.md](./05-backlog/product-backlog.md)** — the user stories and
   acceptance criteria this system is being built against.

@@ -11,8 +11,23 @@ written) for the full topic reference across all services.
 **When**: immediately after a registration is successfully stored (the credential is already
 committed at this point).
 
-**Payload**: the new user's ID, first name, last name, and phone number — see
-[`api-contract.md`](./api-contract.md) for the full field list collected at registration.
+**Topic**: `user.registered` (exact name — placeholder pending
+[`00-infrastructure/kafka-message-bus/`](../../00-infrastructure/kafka-message-bus/) once
+written, which is the source of truth for topic naming across all services).
+
+**Payload**:
+
+```json
+{
+  "userId": "6f1a2b3c-...",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "phone": "555-0100"
+}
+```
+
+Field list and validation rules match what's collected at registration — see
+[`api-contract.md`](./api-contract.md).
 
 **Who consumes it**: UserProfile Service only. Authentication does not consume anything back —
 no round trip (that's the whole point of ADR-0010).

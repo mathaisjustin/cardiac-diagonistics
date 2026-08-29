@@ -3,45 +3,92 @@
 Both endpoints are reached through the API Gateway, not called directly. Per
 [ADR-0009](../../00-infrastructure/adr/0009-route-level-authorization-at-gateway.md), both are
 **public** routes — no token required to hit them (you can't have a token before you log in).
+Error shape and status codes follow [`../../03-cross-cutting/api-conventions.md`](../../03-cross-cutting/api-conventions.md).
 
 ## `POST /auth/register`
 
 Creates a new user.
 
-**Request**: email, password, first name, last name, phone number — **all required**, nothing
-optional at registration.
+**Request**
 
-**Behavior**:
-- Rejects the request if the email is already registered (US-01 acceptance criteria).
-- Rejects the request if the password doesn't meet the password policy (see
-  [`security.md`](./security.md)).
-- Rejects the request if any field is missing/empty. No field-specific format validation yet
-  (e.g. phone number shape) — deliberately not built now, see [`../../BACKLOG.md`](../../BACKLOG.md)
-  if this changes later.
-- On success: creates the user record (email + bcrypt hash + generated user ID — see
-  [`data-model.md`](./data-model.md)), publishes the registration event and waits for Kafka's
-  producer acknowledgment (see [`messaging.md`](./messaging.md)). If that acknowledgment doesn't
-  come back, the just-created user record is rolled back and the request fails — see
-  [ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md).
-- On success, the frontend sends the user to the login page (US-01) — registration does **not**
-  log the user in automatically.
+```json
+{
+  "email": "jane@example.com",
+  "password": "Sw0rdfish!",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "phone": "555-0100"
+}
+```
 
-**Response**: success confirmation (no token — registration and login are separate steps).
+All five fields required. Validation rules:
+
+| Field | Rule |
+|---|---|
+| `email` | Non-empty, standard email format, max 255 characters, not already registered. |
+| `password` | 8–72 characters, at least one letter and one number — see [`security.md`](./security.md) for the exact regex and why 72 is a hard max, not arbitrary. |
+| `firstName` | Non-empty, max 50 characters. No format check beyond that. |
+| `lastName` | Non-empty, max 50 characters. No format check beyond that. |
+| `phone` | Non-empty. **No format validation** — deliberately not built, see [`../../BACKLOG.md`](../../BACKLOG.md) if this changes later. |
+
+Any failing field is reported in the `400 VALIDATION_ERROR` response's `fields` map (see
+[api-conventions](../../03-cross-cutting/api-conventions.md)) — e.g. a request with a 4-character
+password and an empty `lastName` returns both under `fields.password` and `fields.lastName` in
+the same response, not just the first one found.
+
+**Success — `201 Created`**
+
+```json
+{
+  "userId": "6f1a2b3c-...",
+  "email": "jane@example.com"
+}
+```
+
+No token — registration and login are separate steps (US-01: registration sends the user to the
+login page, doesn't log them in).
+
+**Errors**
+
+| Status | Code | When |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | A required field is missing/empty, or the password fails the policy (`fields` names which one — see [`security.md`](./security.md)). |
+| `409` | `EMAIL_ALREADY_REGISTERED` | The email is already in use (US-01 acceptance criteria). |
+| `503` | `REGISTRATION_UNAVAILABLE` | Kafka didn't acknowledge the registration event — the credential is rolled back (not left half-created), and this tells the client to retry. See [`messaging.md`](./messaging.md) and [ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md). |
 
 ## `POST /auth/login`
 
 Authenticates an existing user and issues a token.
 
-**Request**: email, password.
+**Request**
 
-**Behavior**:
-- Looks up the user by email, checks the password against the stored bcrypt hash.
-- On success: returns a JWT (see [`security.md`](./security.md) for contents/expiry).
-- On failure — wrong password **or** unknown email — returns the same generic "invalid
-  credentials" error either way. Never reveal which field was wrong (US-02 acceptance
-  criteria) — a distinct "no such email" error would let someone enumerate registered emails.
+```json
+{
+  "email": "jane@example.com",
+  "password": "Sw0rdfish!"
+}
+```
 
-**Response**: JWT + its expiry.
+**Success — `200 OK`**
+
+```json
+{
+  "token": "eyJhbGciOiJIUzI1NiJ9...",
+  "expiresInMinutes": 60
+}
+```
+
+See [`security.md`](./security.md) for what's inside the token and why.
+
+**Errors**
+
+| Status | Code | When |
+|---|---|---|
+| `401` | `INVALID_CREDENTIALS` | Wrong password **or** unknown email — same code and message either way (US-02: never reveal which field was wrong, or a distinct error would let someone enumerate registered emails). |
+
+No `400`/`VALIDATION_ERROR` here — an empty email or password is just a credential that will
+never match, so it falls straight into `INVALID_CREDENTIALS` rather than a separate validation
+path. There's nothing else to validate about the *shape* of a login request.
 
 ## No `/auth/logout` endpoint
 

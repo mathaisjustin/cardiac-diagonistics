@@ -6,9 +6,18 @@ Passwords are hashed with **bcrypt**, via Spring Security's `PasswordEncoder`. T
 password exists only for the instant it's being checked (login) or hashed (registration) — it is
 never stored, logged, or put in a token.
 
-**Password policy** (registration rejects anything weaker): minimum 8 characters, at least one
-letter and one number. This is a starting default, not a locked decision — easy to tighten later
-without affecting anything else in this doc set.
+**Password policy** (registration rejects anything weaker), precisely: **8–72 characters**, at
+least one letter and one number. As a regex: `^(?=.*[A-Za-z])(?=.*\d).{8,72}$`. This is a
+starting default, not a locked decision — easy to tighten later without affecting anything else
+in this doc set.
+
+**Why 72 is the upper bound, not an arbitrary round number**: bcrypt silently truncates anything
+past 72 *bytes* — a 100-character password and its first-72-bytes prefix would hash identically,
+which is confusing and worth avoiding outright rather than letting someone set a password that's
+silently weaker than they think. Enforcing 72 as a hard max at validation time means what the
+user typed is exactly what gets hashed, nothing truncated. On `POST /auth/register`, a password
+outside this range returns `400 VALIDATION_ERROR` with `fields.password` explaining why — see
+[`api-contract.md`](./api-contract.md).
 
 ## JWT contents
 
