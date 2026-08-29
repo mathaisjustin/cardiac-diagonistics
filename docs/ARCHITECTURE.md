@@ -161,6 +161,10 @@ each:
 - [ADR-0010](./00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md) —
   registration moved to Authentication Service; UserProfile only consumes, no more two-way
   Kafka hand-off. Supersedes ADR-0001 and ADR-0004.
+- [ADR-0011](./00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md) —
+  registration waits for Kafka's producer acknowledgment (not full consumption) before
+  responding, and rolls back the credential if that ack never comes — profile data lives only
+  in that Kafka message, so losing the publish would lose it permanently.
 
 Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
 repopulates it — full detail lands in the Redis doc once written.

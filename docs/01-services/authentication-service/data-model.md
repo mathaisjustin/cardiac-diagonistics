@@ -18,6 +18,14 @@ role/permission distinction anywhere in the case study (every Registered User ha
 access), and logout/session handling doesn't need server-side state — see
 [`security.md`](./security.md).
 
+**Deliberately not stored here**: first name, last name, phone number. Those are collected at
+registration (see [`api-contract.md`](./api-contract.md)) but belong to UserProfile Service, not
+Authentication — they're published to Kafka and never touch this table. This is why
+[`messaging.md`](./messaging.md) and
+[ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md) treat
+that Kafka publish so carefully: this table has no fallback copy of that data if the publish
+were ever lost.
+
 ## Not modeled yet
 
 Password reset (deferred — see [`BACKLOG.md`](../../BACKLOG.md)) will need somewhere to store a

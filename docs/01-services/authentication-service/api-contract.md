@@ -8,16 +8,23 @@ Both endpoints are reached through the API Gateway, not called directly. Per
 
 Creates a new user.
 
-**Request**: email, password, and whatever basic profile fields the registration form collects
-(exact set TBD when UserProfile Service is grilled — e.g. name).
+**Request**: email, password, first name, last name, phone number — **all required**, nothing
+optional at registration.
 
 **Behavior**:
 - Rejects the request if the email is already registered (US-01 acceptance criteria).
 - Rejects the request if the password doesn't meet the password policy (see
   [`security.md`](./security.md)).
-- On success: creates the user record, stores the bcrypt hash, publishes the registration event
-  (see [`messaging.md`](./messaging.md)), and returns success. The frontend then sends the user
-  to the login page (US-01) — registration does **not** log the user in automatically.
+- Rejects the request if any field is missing/empty. No field-specific format validation yet
+  (e.g. phone number shape) — deliberately not built now, see [`../../BACKLOG.md`](../../BACKLOG.md)
+  if this changes later.
+- On success: creates the user record (email + bcrypt hash + generated user ID — see
+  [`data-model.md`](./data-model.md)), publishes the registration event and waits for Kafka's
+  producer acknowledgment (see [`messaging.md`](./messaging.md)). If that acknowledgment doesn't
+  come back, the just-created user record is rolled back and the request fails — see
+  [ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md).
+- On success, the frontend sends the user to the login page (US-01) — registration does **not**
+  log the user in automatically.
 
 **Response**: success confirmation (no token — registration and login are separate steps).
 
