@@ -165,6 +165,12 @@ each:
   registration waits for Kafka's producer acknowledgment (not full consumption) before
   responding, and rolls back the credential if that ack never comes — profile data lives only
   in that Kafka message, so losing the publish would lose it permanently.
+- [ADR-0012](./00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md) — the
+  Gateway forwards identity as `X-User-Id`/`X-User-Email` headers after validating a JWT,
+  instead of every service parsing tokens itself.
+- [ADR-0013](./00-infrastructure/adr/0013-email-never-duplicated-into-userprofile.md) — email is
+  never stored outside Authentication; UserProfile reads it live from the Gateway header instead
+  of keeping its own copy.
 
 Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
 repopulates it — full detail lands in the Redis doc once written.

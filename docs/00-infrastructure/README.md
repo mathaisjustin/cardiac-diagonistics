@@ -7,11 +7,11 @@ This folder holds the build/run detail for each shared infrastructure piece one 
 than that diagram:
 
 - `eureka-discovery/` — service discovery
-- `api-gateway/` — routing, JWT validation, CORS
+- [`api-gateway/`](./api-gateway/README.md) — routing, JWT validation, route protection map, CORS
 - `kafka-message-bus/` — the message bus and every topic on it (source of truth for messaging)
 - `redis-cache/` — what's cached and why
 - [`adr/`](./adr/) — Architecture Decision Records: short write-ups of *why* a system-shape
   decision was made (e.g. why registration is async, why Diagnosis Service has no database).
   Referenced from `ARCHITECTURE.md` wherever a diagram needs the reasoning behind it.
 
-🚧 Eureka, API Gateway, Kafka, and Redis docs not yet drafted — coming next.
+🚧 Eureka, Kafka, and Redis docs not yet drafted — coming next.

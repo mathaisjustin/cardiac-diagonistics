@@ -45,8 +45,8 @@ sequenceDiagram
      published.
 4. Authentication hashes the password (bcrypt) and stores the new user record (email,
    password_hash, generated user ID).
-5. Authentication publishes the registration event to Kafka (user ID, first name, last name,
-   phone) and **waits for the broker's acknowledgment** that it was received — see
+5. Authentication publishes the registration event to Kafka (user ID, first name, last
+   name, phone) and **waits for the broker's acknowledgment** that it was received — see
    [`messaging.md`](./messaging.md) and
    [ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md).
    - If the broker doesn't acknowledge (Kafka unreachable), Authentication **deletes the

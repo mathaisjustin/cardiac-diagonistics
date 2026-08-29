@@ -17,6 +17,13 @@ committed at this point).
 **Who consumes it**: UserProfile Service only. Authentication does not consume anything back —
 no round trip (that's the whole point of ADR-0010).
 
+**Email is deliberately not in here.** UserProfile never stores a copy of it — every request it
+receives already carries the caller's email as a Gateway-forwarded `X-User-Email` header (per
+[ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)), read
+live from the validated JWT on each call. Storing a second copy would just be a value that could
+drift from Authentication's — see
+[ADR-0013](../../00-infrastructure/adr/0013-email-never-duplicated-into-userprofile.md).
+
 ## Reliability: this is not fire-and-forget
 
 Auth's own database never stores the profile fields (first name, last name, phone) — see
