@@ -48,9 +48,12 @@ routes not yet decided are marked TBD rather than guessed at.
 | `GET /diagnosis/{id}` | Diagnosis | Public |
 | `GET /diagnosis/search` | Diagnosis | **Protected** — restricted to Registered Users, a deliberate deviation from the original "Guest or Registered" backlog spec |
 | `GET /diagnosis/analysis` | Diagnosis | **Protected** — US-06 scopes this to Registered Users |
-| Bookmark routes | Bookmark | **Protected** (bookmarking requires an account) |
+| `POST /bookmarks` | Bookmark | **Protected** |
+| `GET /bookmarks` | Bookmark | **Protected** |
+| `DELETE /bookmarks/{id}` | Bookmark | **Protected** |
 
-Exact Bookmark route paths — TBD when that service is grilled.
+Every route is now decided. All Bookmark routes require an account (US-07: "Guests are prompted
+to log in or register if they try to bookmark").
 
 ## What downstream services receive
 

@@ -119,9 +119,10 @@ Diagnosis Service is the odd one out: it has no database of its own — see
   bookmark (deliberately not Kafka — that interaction needs an immediate answer, and a Kafka
   request/reply would have reintroduced the two-way publisher/consumer pattern ADR-0010 removed
   elsewhere; see Diagnosis's [`messaging.md`](./01-services/diagnosis-service/messaging.md)).
-  Routed via Eureka lookup like any other service call, not a hardcoded URL. Exact shape of what
-  Bookmark stores — thin reference vs. a stored snapshot of the record — still to be settled
-  when Bookmark Service is grilled.
+  Routed via Eureka lookup like any other service call, not a hardcoded URL. Only called at
+  bookmark-creation time — Bookmark stores a **snapshot** of the record, not just its ID, so
+  viewing/managing bookmarks never depends on Diagnosis Service being up (see
+  [ADR-0014](./00-infrastructure/adr/0014-bookmark-stores-snapshot-not-reference.md)).
 - **Service → cache**: only the Bookmark Service talks to Redis today.
 - **Service → external system**: only the Diagnosis Service talks outward, to the external
   Diagnosis API.
@@ -175,9 +176,14 @@ each:
 - [ADR-0013](./00-infrastructure/adr/0013-email-never-duplicated-into-userprofile.md) — email is
   never stored outside Authentication; UserProfile reads it live from the Gateway header instead
   of keeping its own copy.
+- [ADR-0014](./00-infrastructure/adr/0014-bookmark-stores-snapshot-not-reference.md) — Bookmark
+  Service stores a snapshot of a diagnosis record, not just its ID, so viewing bookmarks never
+  depends on Diagnosis Service being up.
 
 Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
-repopulates it — full detail lands in the Redis doc once written.
+repopulates it, keyed per user, no TTL (every write path already invalidates it, so nothing
+goes stale without an event that clears it) — see Bookmark Service's
+[`flows.md`](./01-services/bookmark-service/flows.md).
 
 ## Where to go deeper
 
