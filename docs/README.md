@@ -55,6 +55,8 @@ pieces first, so later docs can build on ones already agreed. Links go live as e
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — the whole-system picture: client → API Gateway →
   services → databases, with a diagram. Start here before any individual doc.
+- **[folder-structure.md](./folder-structure.md)** — what the repo will look like once code
+  exists (this repo is docs-only for now, so this is a plan, not real folders yet).
 - **[00-infrastructure](./00-infrastructure/README.md)** — build/run notes for each shared
   infrastructure piece: Eureka, API Gateway, Kafka, Redis.
 - **01-services** — one folder per business service: User Profile, Authentication, Diagnosis,
