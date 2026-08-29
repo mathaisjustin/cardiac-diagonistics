@@ -29,7 +29,7 @@ All five fields required. Validation rules:
 | `password` | 8–72 characters, at least one letter and one number — see [`security.md`](./security.md) for the exact regex and why 72 is a hard max, not arbitrary. |
 | `firstName` | Non-empty, max 50 characters. No format check beyond that. |
 | `lastName` | Non-empty, max 50 characters. No format check beyond that. |
-| `phone` | Non-empty. **No format validation** — deliberately not built, see [`../../BACKLOG.md`](../../BACKLOG.md) if this changes later. |
+| `phone` | Non-empty, max 20 characters (matches UserProfile's column — see its [`data-model.md`](../user-profile-service/data-model.md) — so nothing gets silently truncated once the Kafka event is consumed). **No format validation** — deliberately not built, see [`../../BACKLOG.md`](../../BACKLOG.md) if this changes later. |
 
 Any failing field is reported in the `400 VALIDATION_ERROR` response's `fields` map (see
 [api-conventions](../../03-cross-cutting/api-conventions.md)) — e.g. a request with a 4-character

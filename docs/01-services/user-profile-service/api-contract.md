@@ -6,7 +6,8 @@ valid JWT is required, and the Gateway forwards the caller's identity as `X-User
 `X-User-Email` headers (see
 [ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)). Neither
 route takes a user ID as a path or query parameter — the caller can only ever act on their own
-profile, identified from the header, never anyone else's.
+profile, identified from the header, never anyone else's. Error shape and status codes follow
+[api-conventions](../../03-cross-cutting/api-conventions.md).
 
 Only two routes exist. No creation route (profiles are created only via the Kafka consumer — see
 [`messaging.md`](./messaging.md)), no deletion route.
@@ -15,29 +16,61 @@ Only two routes exist. No creation route (profiles are created only via the Kafk
 
 Returns the caller's own profile.
 
-**Request**: nothing — identity comes from `X-User-Id`.
+**Request**: nothing — identity comes from `X-User-Id` / `X-User-Email`.
 
-**Behavior**: looks up the profile by `user_id` (from the header) and returns it, combined with
-the `email` from the `X-User-Email` header — `email` is never read from this service's own
-database, since it doesn't store one (see [`data-model.md`](./data-model.md)).
+**Success — `200 OK`**
 
-**Response**: `email` (from the header), `firstName`, `lastName`, `phone` (from the database).
+```json
+{
+  "email": "jane@example.com",
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "phone": "555-0100"
+}
+```
 
-**Edge case**: if the profile doesn't exist yet — the Kafka event hasn't been consumed yet,
-per the small race noted in Authentication's
-[ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md)
-— see [`flows.md`](./flows.md) for how this is handled.
+`email` comes from the `X-User-Email` header, the rest from the database (see
+[`data-model.md`](./data-model.md)).
+
+**Errors**
+
+| Status | Code | When |
+|---|---|---|
+| `404` | `PROFILE_NOT_READY` | The Kafka event hasn't been consumed yet — see the timing gap noted in Authentication's [ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md). A dedicated code (not a generic "not found") so the frontend can specifically show "setting up your profile…" and retry, instead of a scary error — see [`flows.md`](./flows.md). |
 
 ## `PUT /profile`
 
-Updates the caller's own profile.
+Replaces the caller's editable fields. **Full update, not partial** — always send all three
+fields, even ones that didn't change (simpler than partial-field semantics; the frontend already
+has the current values from a prior `GET /profile` to pre-fill the edit form).
 
-**Request**: `firstName`, `lastName`, `phone` (whichever fields the user is changing — `email` is
-not accepted here at all, since UserProfile never owns it).
+**Request**
 
-**Behavior**:
-- Validates the fields are present/well-formed before saving (US-09 acceptance criteria).
-- Updates the row identified by `user_id` (from the header).
-- Returns a confirmation (US-09: "a confirmation message shows once changes are saved").
+```json
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "phone": "555-0101"
+}
+```
 
-**Response**: the updated profile.
+`email` is never accepted here — UserProfile doesn't own it (see [`data-model.md`](./data-model.md)).
+
+**Validation rules** — same limits as when these fields were first collected at registration,
+for consistency:
+
+| Field | Rule |
+|---|---|
+| `firstName` | Non-empty, max 50 characters. |
+| `lastName` | Non-empty, max 50 characters. |
+| `phone` | Non-empty. No format validation, per earlier decision. |
+
+**Success — `200 OK`** — the updated profile, same shape as `GET /profile`'s response, plus a
+confirmation the frontend shows (US-09: "a confirmation message shows once changes are saved").
+
+**Errors**
+
+| Status | Code | When |
+|---|---|---|
+| `400` | `VALIDATION_ERROR` | A field fails its rule above — `fields` names each one that failed. |
+| `404` | `PROFILE_NOT_READY` | Same edge case as `GET /profile` — extremely unlikely here in practice, since the frontend only shows an edit form after a successful `GET /profile` already loaded the current values. |

@@ -8,9 +8,9 @@ One table, in its own MySQL database. Every row is created by the Kafka consumer
 | Field | Type | Notes |
 |---|---|---|
 | `user_id` | identifier (PK) | Same ID Authentication generated at registration — not a separate ID. This is what ties a profile record back to its account. |
-| `first_name` | string | Editable via `PUT /profile`. |
-| `last_name` | string | Editable via `PUT /profile`. |
-| `phone` | string | Editable via `PUT /profile`. |
+| `first_name` | `VARCHAR(50)` | Editable via `PUT /profile`. Matches the limit used at registration ([Authentication's api-contract.md](../authentication-service/api-contract.md)). |
+| `last_name` | `VARCHAR(50)` | Editable via `PUT /profile`. Same limit as `first_name`. |
+| `phone` | `VARCHAR(20)` | Editable via `PUT /profile`. 20 covers any real-world phone format (country code, separators) with headroom — no format validation, just a generous max length. |
 | `created_at` | timestamp | When the Kafka event was consumed and the row created. |
 | `updated_at` | timestamp | Last time the user edited their profile. |
 

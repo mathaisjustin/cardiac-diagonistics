@@ -38,7 +38,7 @@ sequenceDiagram
         UP-->>FE: 200 + profile data<br/>(email from header + DB fields)
     else profile not found yet
         Note over UP: registration happened, but the Kafka<br/>consumer hasn't processed it yet
-        UP-->>FE: 404 (profile not ready)
+        UP-->>FE: 404 PROFILE_NOT_READY
         FE->>U: "setting up your profile…" + retry shortly
     end
 ```
@@ -52,7 +52,7 @@ sequenceDiagram
    and [ADR-0013](../../00-infrastructure/adr/0013-email-never-duplicated-into-userprofile.md)).
 5. **Edge case — just registered**: a valid JWT only proves the user successfully logged in, not
    that their profile row exists yet (per the timing gap noted in
-   [`messaging.md`](./messaging.md)). If nothing is found, UserProfile returns 404 rather than a
+   [`messaging.md`](./messaging.md)). If nothing is found, UserProfile returns 404 PROFILE_NOT_READY rather than a
    generic server error, and the frontend treats this specific case as "still being set up" —
    showing a friendly loading state and retrying shortly — instead of an alarming error message.
    This should resolve within moments in practice; it's not expected to be a real 404 in any
