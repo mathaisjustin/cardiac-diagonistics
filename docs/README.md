@@ -67,6 +67,9 @@ pieces first, so later docs can build on ones already agreed. Links go live as e
 - **04-deployment** — the Docker Compose setup that brings every service up with one command.
 - **[05-backlog/product-backlog.md](./05-backlog/product-backlog.md)** — the user stories and
   acceptance criteria this system is being built against.
+- **[BACKLOG.md](./BACKLOG.md)** — features deliberately deferred during grilling (e.g. password
+  reset), one section per service, so they aren't forgotten. Not to be confused with the product
+  backlog above — this one is *our* running list, not the original spec's.
 
 ## Status
 

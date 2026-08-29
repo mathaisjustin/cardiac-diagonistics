@@ -52,4 +52,4 @@ server-side blocklist — deliberately not building that now.
 
 ## Out of scope for this phase
 
-Password reset — see [`backlog.md`](./backlog.md).
+Password reset — see [`BACKLOG.md`](../../BACKLOG.md).

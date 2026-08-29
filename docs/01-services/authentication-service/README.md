@@ -8,7 +8,7 @@ just for logging an existing one in.
 ## Scope of this phase
 
 Only **registration** and **login** are being built and documented right now. Password reset
-(backlog story US-03) is explicitly **deferred** — see [`backlog.md`](./backlog.md).
+(backlog story US-03) is explicitly **deferred** — see [`BACKLOG.md`](../../BACKLOG.md).
 
 ## Responsibilities
 
@@ -37,7 +37,7 @@ Only **registration** and **login** are being built and documented right now. Pa
 - [`messaging.md`](./messaging.md) — the Kafka event it publishes after registration.
 - [`flows.md`](./flows.md) — registration and login, step by step.
 - [`config-env.md`](./config-env.md) — what it needs to run.
-- [`backlog.md`](./backlog.md) — what's deliberately deferred, and why.
+- [`BACKLOG.md`](../../BACKLOG.md) — what's deliberately deferred, and why.
 
 ## How it fits the whole system
 

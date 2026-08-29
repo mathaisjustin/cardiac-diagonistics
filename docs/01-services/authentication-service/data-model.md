@@ -20,6 +20,6 @@ access), and logout/session handling doesn't need server-side state — see
 
 ## Not modeled yet
 
-Password reset (deferred — see [`backlog.md`](./backlog.md)) will need somewhere to store a
+Password reset (deferred — see [`BACKLOG.md`](../../BACKLOG.md)) will need somewhere to store a
 reset token/code and its expiry when it's built. Not added now to avoid documenting fields for a
 flow that doesn't exist yet.

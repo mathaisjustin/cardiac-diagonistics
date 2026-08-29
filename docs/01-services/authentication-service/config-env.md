@@ -13,4 +13,4 @@ the service is actually scaffolded.
 | `EUREKA_URL` | Where to register itself for service discovery. |
 
 Nothing here for email/SMTP — that's part of password reset, which is deferred. See
-[`backlog.md`](./backlog.md).
+[`BACKLOG.md`](../../BACKLOG.md).
