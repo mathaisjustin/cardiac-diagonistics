@@ -2,6 +2,39 @@
 
 ## Registration
 
+```mermaid
+sequenceDiagram
+    actor U as Guest User
+    participant FE as Frontend
+    participant GW as API Gateway
+    participant Auth as Authentication Service
+    participant DB as Auth DB (MySQL)
+    participant K as Kafka
+
+    U->>FE: fills registration form<br/>(email, password, first/last name, phone)
+    FE->>GW: POST /auth/register
+    GW->>Auth: routes (public route)
+
+    Auth->>Auth: validate: email not taken,<br/>password policy, all fields present
+
+    alt validation fails
+        Auth-->>FE: 400 error
+    else validation passes
+        Auth->>Auth: hash password (bcrypt)
+        Auth->>DB: store user (email, password_hash, id)
+        Auth->>K: publish event (userId, first/last name, phone)
+        K-->>Auth: producer ack
+
+        alt no ack (Kafka unreachable)
+            Auth->>DB: roll back — delete the user just created
+            Auth-->>FE: error — registration failed
+        else ack received
+            Auth-->>FE: 201 success
+            FE->>U: redirect to login page
+        end
+    end
+```
+
 1. Guest User submits the registration form — email, password, first name, last name, phone
    number, all required — from the frontend.
 2. Request reaches Authentication Service via the Gateway (public route, no token needed).
@@ -24,10 +57,47 @@
 6. Once acknowledged, Authentication returns success to the client.
 7. The frontend sends the user to the login page (they are **not** automatically logged in).
 
-Meanwhile, asynchronously and independently of the above: UserProfile Service consumes the event
-and creates the profile record. See [`messaging.md`](./messaging.md).
+### After registration: UserProfile picks up the event
+
+```mermaid
+sequenceDiagram
+    participant K as Kafka
+    participant UP as UserProfile Service
+    participant UPDB as UserProfile DB (MySQL)
+
+    Note over K: event retained up to 7 days
+    K->>UP: deliver event (userId, first/last name, phone)
+    UP->>UPDB: create profile record
+```
+
+This happens asynchronously and independently of the registration flow above — Authentication
+has already responded to the client by this point and doesn't wait for it. See
+[`messaging.md`](./messaging.md).
 
 ## Login
+
+```mermaid
+sequenceDiagram
+    actor U as Registered User
+    participant FE as Frontend
+    participant GW as API Gateway
+    participant Auth as Authentication Service
+    participant DB as Auth DB (MySQL)
+
+    U->>FE: enters email + password
+    FE->>GW: POST /auth/login
+    GW->>Auth: routes (public route)
+    Auth->>DB: look up user by email
+    Auth->>Auth: check password against stored hash
+
+    alt no match (wrong password or unknown email)
+        Auth-->>FE: generic "invalid credentials" error
+    else match
+        Auth->>Auth: issue JWT (userId, email, 60min expiry)
+        Auth-->>FE: 200 + token
+        FE->>FE: store token, treat user as logged in
+    end
+```
 
 1. Registered User submits email + password from the frontend.
 2. Request reaches Authentication Service via the Gateway (public route).
@@ -39,6 +109,21 @@ and creates the profile record. See [`messaging.md`](./messaging.md).
    logs out) and treats the user as logged in.
 
 ## Logout
+
+```mermaid
+sequenceDiagram
+    actor U as Registered User
+    participant FE as Frontend
+    participant GW as API Gateway
+
+    U->>FE: clicks logout
+    FE->>FE: delete token from local storage
+    Note over FE,GW: no backend call — nothing to invalidate server-side
+    U->>FE: later, visits a protected page
+    FE->>GW: request with no token
+    GW-->>FE: 401 rejected
+    FE->>U: redirect to login
+```
 
 1. User clicks logout.
 2. Frontend deletes the token from local storage.
