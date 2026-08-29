@@ -115,9 +115,13 @@ Diagnosis Service is the odd one out: it has no database of its own — see
   UserProfile after registration — full topic-by-topic detail lives in the Kafka doc once
   written.
 - **Service → service (direct)**: real example in this system — Bookmark Service calling
-  Diagnosis Service to confirm a record exists when a user bookmarks it (exact shape — thin
-  reference vs. a stored snapshot of the record — still to be settled). Routed via Gateway/Eureka
-  lookup like any other service call, not a hardcoded URL.
+  `GET /diagnosis/{id}` on Diagnosis Service directly to confirm a record exists before saving a
+  bookmark (deliberately not Kafka — that interaction needs an immediate answer, and a Kafka
+  request/reply would have reintroduced the two-way publisher/consumer pattern ADR-0010 removed
+  elsewhere; see Diagnosis's [`messaging.md`](./01-services/diagnosis-service/messaging.md)).
+  Routed via Eureka lookup like any other service call, not a hardcoded URL. Exact shape of what
+  Bookmark stores — thin reference vs. a stored snapshot of the record — still to be settled
+  when Bookmark Service is grilled.
 - **Service → cache**: only the Bookmark Service talks to Redis today.
 - **Service → external system**: only the Diagnosis Service talks outward, to the external
   Diagnosis API.

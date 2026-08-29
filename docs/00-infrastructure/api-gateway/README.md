@@ -44,10 +44,13 @@ routes not yet decided are marked TBD rather than guessed at.
 | `POST /auth/login` | Authentication | Public |
 | `GET /profile` | UserProfile | **Protected** |
 | `PUT /profile` | UserProfile | **Protected** |
-| Diagnosis view/search routes | Diagnosis | Public (Guest Users can browse without an account) |
+| `GET /diagnosis` | Diagnosis | Public |
+| `GET /diagnosis/{id}` | Diagnosis | Public |
+| `GET /diagnosis/search` | Diagnosis | **Protected** — restricted to Registered Users, a deliberate deviation from the original "Guest or Registered" backlog spec |
+| `GET /diagnosis/analysis` | Diagnosis | **Protected** — US-06 scopes this to Registered Users |
 | Bookmark routes | Bookmark | **Protected** (bookmarking requires an account) |
 
-Exact Diagnosis and Bookmark route paths — TBD when those services are grilled.
+Exact Bookmark route paths — TBD when that service is grilled.
 
 ## What downstream services receive
 
