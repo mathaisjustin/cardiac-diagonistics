@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: cardiac-diagnosis-service
+
+server:
+  port: 8083
+
+external:
+  diagnosis-api-url: http://localhost:3232
