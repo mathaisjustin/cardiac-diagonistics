@@ -94,12 +94,12 @@ sequenceDiagram
         B->>B: save bookmark
         B-->>FE: 201 confirmed
     else record not found
-        D-->>B: 404
+        D-->>B: 404 RECORD_NOT_FOUND
         B-->>FE: error — can't bookmark, record doesn't exist
     end
 ```
 
 This is the one real direct service-to-service call in this system (see
-[`messaging.md`](./messaging.md) for why it isn't Kafka). Exact request/response shape for
-Bookmark's own side — snapshot vs. thin reference, exactly what `POST /bookmarks` looks like —
-is deferred to Bookmark Service's own docs.
+[`messaging.md`](./messaging.md) for why it isn't Kafka). Bookmark Service's own side — how it
+stores the snapshot, what `POST /bookmarks` looks like — is documented in its own
+[`api-contract.md`](../bookmark-service/api-contract.md).
