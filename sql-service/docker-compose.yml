@@ -7,9 +7,6 @@ services:
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: cardiac_diagnostics
-      MYSQL_USER: cardiac_user
-      MYSQL_PASSWORD: cardiac_pass
     ports:
       - "3306:3306"
     volumes:
