@@ -3,7 +3,7 @@ spring:
     name: cardiac-user-profile-service
 
   datasource:
-    url: jdbc:mysql://localhost:3306/profilesdb?createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/profiles_db?createDatabaseIfNotExist=true
     username: root
     password: rootpassword
     driver-class-name: com.mysql.cj.jdbc.Driver
