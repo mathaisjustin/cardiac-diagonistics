@@ -26,12 +26,12 @@ public class JwtService {
         this.accessTokenExpiration = accessTokenExpiration;
     }
 
-    public String generateAccessToken(Long userId, String email) {
+    public String generateAccessToken(String userId, String email) {
 
         Date now = new Date();
 
         return Jwts.builder()
-                .subject(String.valueOf(userId))
+                .subject(userId)
                 .claim("email", email)
                 .issuedAt(now)
                 .expiration(
@@ -56,16 +56,14 @@ public class JwtService {
         }
     }
 
-    public Long extractUserId(String token) {
+    public String extractUserId(String token) {
 
-        return Long.valueOf(
-                Jwts.parser()
-                        .verifyWith(secretKey)
-                        .build()
-                        .parseSignedClaims(token)
-                        .getPayload()
-                        .getSubject()
-        );
+        return Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
     }
 
     public String extractEmail(String token) {

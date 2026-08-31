@@ -54,7 +54,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         UserRegisteredEvent event = new UserRegisteredEvent(
-                savedUser.getId().toString(),
+                savedUser.getId(),
                 request.firstName(),
                 request.lastName(),
                 request.contactNumber(),
@@ -120,7 +120,7 @@ public class AuthService {
 
     @Transactional
     public void changePassword(
-            Long userId,
+            String userId,
             ChangePasswordRequest request
     ) {
         User user = userRepository.findById(userId)
