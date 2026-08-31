@@ -1,0 +1,28 @@
+services:
+  auth-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: cardiac-auth-service
+
+    ports:
+      - "8081:8081"
+
+    environment:
+      DB_HOST: cardiac-sql-service
+      DB_PORT: 3306
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+
+      JWT_SECRET: ${JWT_SECRET}
+
+    networks:
+      - cardiac-net
+
+networks:
+  cardiac-net:
+    external: true
+    name: cardiac-net
