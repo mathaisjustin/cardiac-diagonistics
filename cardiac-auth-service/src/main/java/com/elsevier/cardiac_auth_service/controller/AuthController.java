@@ -67,7 +67,7 @@ public class AuthController {
             @RequestBody ChangePasswordRequest request,
             Authentication authentication
     ) {
-        Long userId = (Long) authentication.getPrincipal();
+        String userId = (String) authentication.getPrincipal();
 
         authService.changePassword(userId, request);
 

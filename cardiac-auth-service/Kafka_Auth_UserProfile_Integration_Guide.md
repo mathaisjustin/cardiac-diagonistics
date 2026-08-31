@@ -42,8 +42,7 @@ JSON:
 
 ```json
 {
-  "userId": 4,
-  "email": "Aravindtest@gmail.com",
+  "userId": "4",
   "firstName": "Kafka01",
   "lastName": "Test01",
   "contactNumber": "1234567890",
@@ -53,16 +52,15 @@ JSON:
 
 Fields:
 
-- `userId`
-- `email`
+- `userId` (String — the auth-service user's numeric ID, stringified)
 - `firstName`
 - `lastName`
 - `contactNumber`
 - `department`
 
-**Never send `password` or `passwordHash`.**
+**Never send `password`, `passwordHash`, or `email`** — per ADR-0013, email is intentionally never duplicated into UserProfile.
 
-The Kafka message key is `userId` converted to a String.
+The Kafka message key is `userId` (already a String).
 
 ## 4. What UserProfile Must Implement
 
@@ -78,8 +76,7 @@ The Kafka message key is `userId` converted to a String.
 
 ```java
 public record UserRegisteredEvent(
-        Long userId,
-        String email,
+        String userId,
         String firstName,
         String lastName,
         String contactNumber,
@@ -198,8 +195,8 @@ Auth Service
 ## 9. Important Rules
 
 - Exact topic: `user.registered`
-- Exact fields: `userId`, `email`, `firstName`, `lastName`, `contactNumber`, `department`
-- No password/passwordHash in Kafka
+- Exact fields: `userId` (String), `firstName`, `lastName`, `contactNumber`, `department`
+- No password/passwordHash/email in Kafka
 - Local application → `localhost:9092`
 - Docker application → `kafka:19092`
 - Stable consumer group → `user-profile-service`

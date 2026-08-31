@@ -39,7 +39,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         if (jwtService.isTokenValid(token)) {
 
-            Long userId = jwtService.extractUserId(token);
+            String userId = jwtService.extractUserId(token);
 //            String email = jwtService.extractEmail(token);
 
             var authentication =

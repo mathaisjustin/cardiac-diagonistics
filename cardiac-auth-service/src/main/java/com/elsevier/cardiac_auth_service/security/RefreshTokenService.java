@@ -32,7 +32,7 @@ public class RefreshTokenService {
 
 
     @Transactional
-    public String createRefreshToken(Long userId) {
+    public String createRefreshToken(String userId) {
 
         // Remove the user's existing refresh token
         refreshTokenRepository.deleteByUserId(userId);
@@ -113,7 +113,7 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public void revokeByUserId(Long userId) {
+    public void revokeByUserId(String userId) {
 
         refreshTokenRepository.findByUserId(userId)
                 .ifPresent(refreshToken -> {
