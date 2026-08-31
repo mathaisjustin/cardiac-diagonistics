@@ -16,7 +16,7 @@ import java.util.UUID;
 public class User {
 
     @Id
-    @Column(updatable = false)
+    @Column(name = "user_id", updatable = false)
     private String id;
 
     @Column(nullable = false, unique = true)
