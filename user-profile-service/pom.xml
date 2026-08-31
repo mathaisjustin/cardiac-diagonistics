@@ -123,6 +123,7 @@
 				</executions>
 			</plugin>
 		</plugins>
+		<finalName>cardiac-user-profile-service</finalName>
 	</build>
 
 </project>
