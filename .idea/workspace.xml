@@ -1,11 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
   <component name="ChangeListManager">
-    <list default="true" id="6d912c8b-44e9-4316-ad7c-50a6cbeb486b" name="Changes" comment="" />
+    <list default="true" id="6d912c8b-44e9-4316-ad7c-50a6cbeb486b" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/user-profile-service/src/main/java/com/elsevier/cardiac_user_profile_service/consumer/UserProfileConsumer.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/user-profile-service/src/main/java/com/elsevier/cardiac_user_profile_service/entity/Profile.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/user-profile-service/src/main/java/com/elsevier/cardiac_user_profile_service/event/UserProfileEvent.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/user-profile-service/src/main/java/com/elsevier/cardiac_user_profile_service/repository/ProfileRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-profile-service/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/user-profile-service/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-profile-service/src/main/java/com/elsevier/cardiac_user_profile_service/CardiacUserProfileServiceApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/user-profile-service/src/main/java/com/elsevier/cardiac_user_profile_service/CardiacUserProfileServiceApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/user-profile-service/src/main/resources/application.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/user-profile-service/src/main/resources/application.yaml" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -15,6 +34,9 @@
   &quot;fromUser&quot;: false
 }</component>
   <component name="ProjectId" id="3IaJpXeNVxTDuxPsSzUjHeuAtt3" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
   <component name="ProjectViewState">
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
@@ -22,16 +44,48 @@
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.git.unshallow": "true",
     "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "Spring Boot.CardiacUserProfileServiceApplication.executor": "Run",
     "codeWithMe.voiceChat.enabledByDefault": "false",
-    "git-widget-placeholder": "main",
+    "com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1": "true",
+    "git-widget-placeholder": "cardiac-user-profile-service",
+    "junie.onboarding.icon.badge.shown": "true",
     "kotlin-language-version-configured": "true",
     "last_opened_file_path": "D:/elsevier/cardiac-diagonistics",
-    "nodejs_package_manager_path": "npm"
+    "node.js.detected.package.eslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "to.speed.mode.migration.done": "true"
   }
 }]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="cardiac-user-profile-service" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="cardiac-user-profile-service" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration name="CardiacUserProfileServiceApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="cardiac-user-profile-service" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.elsevier.cardiac_user_profile_service.CardiacUserProfileServiceApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -52,5 +106,9 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
   </component>
 </project>
