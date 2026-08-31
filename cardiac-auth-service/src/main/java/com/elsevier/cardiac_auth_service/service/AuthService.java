@@ -54,8 +54,7 @@ public class AuthService {
         User savedUser = userRepository.save(user);
 
         UserRegisteredEvent event = new UserRegisteredEvent(
-                savedUser.getId(),
-//                savedUser.getEmail(),
+                savedUser.getId().toString(),
                 request.firstName(),
                 request.lastName(),
                 request.contactNumber(),
