@@ -1,12 +1,16 @@
 package com.elsevier.cardiac_auth_service.service;
 
-import com.elsevier.cardiac_auth_service.dto.LoginRequest;
-import com.elsevier.cardiac_auth_service.dto.RegisterRequest;
+import com.elsevier.cardiac_auth_service.dto.*;
+import com.elsevier.cardiac_auth_service.entity.RefreshToken;
 import com.elsevier.cardiac_auth_service.entity.User;
-import com.elsevier.cardiac_auth_service.exception.EmailAlreadyExistsException;
+import com.elsevier.cardiac_auth_service.exception.*;
+import com.elsevier.cardiac_auth_service.kafka.UserRegistrationProducer;
 import com.elsevier.cardiac_auth_service.repository.UserRepository;
+import com.elsevier.cardiac_auth_service.security.JwtService;
+import com.elsevier.cardiac_auth_service.security.RefreshTokenService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 
@@ -15,12 +19,18 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
+    private final UserRegistrationProducer userRegistrationProducer;
 
-    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(UserRepository userRepository, PasswordEncoder passwordEncoder , JwtService jwtService,RefreshTokenService refreshTokenService, UserRegistrationProducer userRegistrationProducer) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
+        this.jwtService = jwtService;
+        this.refreshTokenService = refreshTokenService;
+        this.userRegistrationProducer = userRegistrationProducer;
     }
-
+    @Transactional
     public void register(RegisterRequest request) {
 
         if (userRepository.existsByEmail(request.email())) {
@@ -41,23 +51,99 @@ public class AuthService {
         user.setUpdatedAt(now);
 
         // save the data to db
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        UserRegisteredEvent event = new UserRegisteredEvent(
+                savedUser.getId(),
+//                savedUser.getEmail(),
+                request.firstName(),
+                request.lastName(),
+                request.contactNumber(),
+                request.department()
+        );
+
+        userRegistrationProducer.publish(event);
 
     }
 
-    public User authenticate(LoginRequest request) {
+    //login
+
+    public LoginResponse authenticate(LoginRequest request) {
 
         User user = userRepository.findByEmail(request.email())
                 .orElseThrow(() ->
-                        new IllegalArgumentException("Invalid email or password"));
+                        new InvalidCredentialsException("Invalid email or password"));
 
         if (!passwordEncoder.matches(
                 request.password(),
                 user.getPasswordHash())) {
 
-            throw new IllegalArgumentException("Invalid email or password");
+            throw new InvalidCredentialsException("Invalid email or password");
         }
 
-        return user;
+        String accessToken = jwtService.generateAccessToken(
+                user.getId(),
+                user.getEmail()
+        );
+
+        String refreshToken = refreshTokenService.createRefreshToken(
+                user.getId()
+        );
+
+        return new LoginResponse(accessToken,refreshToken);
+    }
+
+
+    public LoginResponse refreshAccessToken(RefreshTokenRequest request) {
+
+        RefreshToken oldRefreshToken =
+                refreshTokenService.validateRefreshToken(request.refreshToken());
+
+        User user = userRepository.findById(oldRefreshToken.getUserId())
+                .orElseThrow(() ->
+                        new InvalidRefreshTokenException(
+                                "Invalid refresh token"));
+
+        String accessToken = jwtService.generateAccessToken(
+                user.getId(),
+                user.getEmail()
+        );
+
+        String newRefreshToken =
+                refreshTokenService.createRefreshToken(user.getId());
+
+        return new LoginResponse(
+                accessToken,
+                newRefreshToken
+        );
+    }
+
+
+    @Transactional
+    public void changePassword(
+            Long userId,
+            ChangePasswordRequest request
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found")
+                );
+
+        boolean passwordMatches = passwordEncoder.matches(
+                request.oldPassword(),
+                user.getPasswordHash()
+        );
+
+        if (!passwordMatches) {
+            throw new InvalidPasswordException("Old password is incorrect");
+        }
+
+        user.setPasswordHash(
+                passwordEncoder.encode(request.newPassword())
+        );
+
+        userRepository.save(user);
+
+        refreshTokenService.revokeByUserId(userId);
     }
 }
