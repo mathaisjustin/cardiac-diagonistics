@@ -2,6 +2,7 @@
 target/
 **/target/
 .mvn/wrapper/maven-wrapper.jar
+*.class
 
 # IntelliJ IDEA
 .idea/
