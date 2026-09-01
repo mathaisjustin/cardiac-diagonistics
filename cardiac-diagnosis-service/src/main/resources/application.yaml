@@ -2,8 +2,18 @@ spring:
   application:
     name: cardiac-diagnosis-service
 
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
 server:
   port: 8083
 
 external:
-  diagnosis-api-url: http://localhost:3232
+  diagnosis-api-url: ${EXTERNAL_DIAGNOSIS_API_URL:http://localhost:3232}
+
+bookmark:
+  kafka:
+    topic: bookmark.created

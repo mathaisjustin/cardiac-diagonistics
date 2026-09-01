@@ -80,6 +80,15 @@ services:
       timeout: 5s
       retries: 10
 
+  diagnosis-api:
+    image: stackroutenew/diagnosisapi
+    container_name: cardiac-diagnosis-api
+    restart: unless-stopped
+    ports:
+      - "3232:3232"
+    networks:
+      - cardiac-net
+
   auth-service:
     build:
       context: ./cardiac-auth-service
@@ -122,6 +131,25 @@ services:
     depends_on:
       mysql:
         condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  diagnosis-service:
+    build:
+      context: ./cardiac-diagnosis-service
+      dockerfile: Dockerfile
+    container_name: cardiac-diagnosis-service
+    restart: unless-stopped
+    ports:
+      - "8083:8083"
+    environment:
+      EXTERNAL_DIAGNOSIS_API_URL: http://diagnosis-api:3232
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    networks:
+      - cardiac-net
+    depends_on:
+      diagnosis-api:
+        condition: service_started
       kafka:
         condition: service_healthy
 

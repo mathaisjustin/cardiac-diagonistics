@@ -59,6 +59,18 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler(KafkaPublishException.class)
+    @ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+    public Map<String, Object> handleKafkaPublishException(
+            KafkaPublishException exception) {
+
+        return Map.of(
+                "status", 503,
+                "message", "Bookmarking is temporarily unavailable, please try again",
+                "timestamp", LocalDateTime.now()
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
     public Map<String, Object> handleGeneralException(

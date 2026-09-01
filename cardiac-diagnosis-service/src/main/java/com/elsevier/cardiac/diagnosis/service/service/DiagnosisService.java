@@ -5,7 +5,10 @@ import com.elsevier.cardiac.diagnosis.service.dto.AdvancedSearchRequest;
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisGroup;
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResult;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
+import com.elsevier.cardiac.diagnosis.service.event.BookmarkEvent;
+import com.elsevier.cardiac.diagnosis.service.event.DiagnosisPayload;
 import com.elsevier.cardiac.diagnosis.service.exception.DiagnosisNotFoundException;
+import com.elsevier.cardiac.diagnosis.service.kafka.BookmarkProducer;
 
 import org.springframework.stereotype.Service;
 
@@ -21,9 +24,11 @@ import java.util.stream.Collectors;
 public class DiagnosisService {
 
     private final DiagnosisApiClient diagnosisApiClient;
+    private final BookmarkProducer bookmarkProducer;
 
-    public DiagnosisService(DiagnosisApiClient diagnosisApiClient) {
+    public DiagnosisService(DiagnosisApiClient diagnosisApiClient, BookmarkProducer bookmarkProducer) {
         this.diagnosisApiClient = diagnosisApiClient;
+        this.bookmarkProducer = bookmarkProducer;
     }
 
     // Get all diagnosis records
@@ -49,6 +54,26 @@ public class DiagnosisService {
                 .findFirst()
                 .orElseThrow(() ->
                         new DiagnosisNotFoundException(id));
+    }
+
+    // Bookmark a diagnosis record (registered users only). The record must exist
+    // (getDiagnosisById throws DiagnosisNotFoundException otherwise); its display
+    // fields are snapshotted into the event, not just its ID.
+    public void bookmarkDiagnosis(String id, String userId) {
+
+        Diagnosis diagnosis = getDiagnosisById(id);
+
+        DiagnosisPayload payload = new DiagnosisPayload(
+                diagnosis.getGender(),
+                diagnosis.getAge(),
+                String.valueOf(diagnosis.getBp()),
+                diagnosis.getPainType(),
+                diagnosis.getTreatment()
+        );
+
+        BookmarkEvent event = new BookmarkEvent(userId, id, payload);
+
+        bookmarkProducer.publish(event);
     }
 
     // Advanced search (registered users only) - range filters on age/bp
