@@ -1,7 +1,7 @@
 package com.elsevier.cardiac.diagnosis.service.client;
 
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
-import exception.ExternalApiException;
+import com.elsevier.cardiac.diagnosis.service.exception.ExternalApiException;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;

@@ -1,4 +1,4 @@
-package exception;
+package com.elsevier.cardiac.diagnosis.service.exception;
 
 public class DiagnosisNotFoundException
         extends RuntimeException {

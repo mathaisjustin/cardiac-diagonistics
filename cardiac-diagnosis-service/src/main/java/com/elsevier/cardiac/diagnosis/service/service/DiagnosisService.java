@@ -1,10 +1,11 @@
 package com.elsevier.cardiac.diagnosis.service.service;
 
 import com.elsevier.cardiac.diagnosis.service.client.DiagnosisApiClient;
+import com.elsevier.cardiac.diagnosis.service.dto.AdvancedSearchRequest;
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResponse;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisSearchRequest;
-import exception.DiagnosisNotFoundException;
+import com.elsevier.cardiac.diagnosis.service.exception.DiagnosisNotFoundException;
 
 import org.springframework.stereotype.Service;
 
@@ -48,36 +49,40 @@ public class DiagnosisService {
                         new DiagnosisNotFoundException(id));
     }
 
-    // Advanced search
-    public List<Diagnosis> search(
-            DiagnosisSearchRequest request) {
+    // Advanced search (registered users only) - range filters on age/bp
+    public List<Diagnosis> advancedSearch(
+            AdvancedSearchRequest request) {
 
         return getAllDiagnoses()
                 .stream()
 
                 .filter(diagnosis ->
                         request.getGender() == null
-                                || request.getGender().isBlank()
                                 || diagnosis.getGender()
                                 .equalsIgnoreCase(
                                         request.getGender()))
 
                 .filter(diagnosis ->
-                        request.getAge() == null
-                                || diagnosis.getAge()
-                                == request.getAge())
-
-                .filter(diagnosis ->
-                        request.getBp() == null
-                                || diagnosis.getBp()
-                                == request.getBp())
-
-                .filter(diagnosis ->
                         request.getPainType() == null
-                                || request.getPainType().isBlank()
                                 || diagnosis.getPainType()
                                 .equalsIgnoreCase(
                                         request.getPainType()))
+
+                .filter(diagnosis ->
+                        request.getAgeMin() == null
+                                || diagnosis.getAge() >= request.getAgeMin())
+
+                .filter(diagnosis ->
+                        request.getAgeMax() == null
+                                || diagnosis.getAge() <= request.getAgeMax())
+
+                .filter(diagnosis ->
+                        request.getBpMin() == null
+                                || diagnosis.getBp() >= request.getBpMin())
+
+                .filter(diagnosis ->
+                        request.getBpMax() == null
+                                || diagnosis.getBp() <= request.getBpMax())
 
                 .collect(Collectors.toList());
     }

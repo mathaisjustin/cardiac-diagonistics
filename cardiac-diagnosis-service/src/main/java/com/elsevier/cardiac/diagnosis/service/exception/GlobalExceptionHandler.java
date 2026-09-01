@@ -1,4 +1,4 @@
-package exception;
+package com.elsevier.cardiac.diagnosis.service.exception;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -30,6 +30,30 @@ public class GlobalExceptionHandler {
 
         return Map.of(
                 "status", 503,
+                "message", exception.getMessage(),
+                "timestamp", LocalDateTime.now()
+        );
+    }
+
+    @ExceptionHandler(ValidationException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, Object> handleValidationException(
+            ValidationException exception) {
+
+        return Map.of(
+                "status", 400,
+                "message", exception.getMessage(),
+                "timestamp", LocalDateTime.now()
+        );
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public Map<String, Object> handleUnauthorizedException(
+            UnauthorizedException exception) {
+
+        return Map.of(
+                "status", 401,
                 "message", exception.getMessage(),
                 "timestamp", LocalDateTime.now()
         );
