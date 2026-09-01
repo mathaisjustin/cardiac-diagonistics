@@ -1,0 +1,24 @@
+services:
+  redis:
+    image: redis:7.2
+    container_name: cardiac-redis-service
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "rootpassword"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cardiac-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "rootpassword", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+networks:
+  cardiac-net:
+    name: cardiac-net
+
+volumes:
+  redis_data:

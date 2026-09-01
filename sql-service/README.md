@@ -11,13 +11,13 @@ docker compose up -d
 
 This starts a MySQL 8.0 container on the `cardiac-net` Docker network, exposed on `localhost:3306`.
 
+This is a bare MySQL instance only — no database or app user is pre-created. Each service is responsible for creating its own database (e.g. via `createDatabaseIfNotExist=true` on the JDBC URL, or a migration tool) and should use its own independent database within this instance.
+
 ## Connection details
 
 - Host: `localhost` (or `cardiac-sql-service` from another container on `cardiac-net`)
 - Port: `3306`
-- Database: `cardiac_diagnostics`
-- User: `cardiac_user`
-- Password: `cardiac_pass`
+- Root user: `root`
 - Root password: `rootpassword`
 
 ## Connecting other services
