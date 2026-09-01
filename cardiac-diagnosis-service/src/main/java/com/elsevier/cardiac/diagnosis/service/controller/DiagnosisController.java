@@ -2,6 +2,7 @@ package com.elsevier.cardiac.diagnosis.service.controller;
 
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResponse;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
+import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisListItem;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisSearchRequest;
 import com.elsevier.cardiac.diagnosis.service.service.DiagnosisService;
 
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/diagnosis")
@@ -22,9 +24,12 @@ public class DiagnosisController {
 
     // GET /diagnosis
     @GetMapping
-    public List<Diagnosis> getAllDiagnoses() {
+    public List<DiagnosisListItem> getAllDiagnoses() {
 
-        return diagnosisService.getAllDiagnoses();
+        return diagnosisService.getAllDiagnoses()
+                .stream()
+                .map(DiagnosisListItem::new)
+                .collect(Collectors.toList());
     }
 
     // POST /diagnosis
