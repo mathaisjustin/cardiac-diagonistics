@@ -3,7 +3,9 @@ package com.elsevier.cardiac.diagnosis.service.controller;
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResponse;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisListItem;
+import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisPublicDetail;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisSearchRequest;
+import com.elsevier.cardiac.diagnosis.service.security.JwtPayloadReader;
 import com.elsevier.cardiac.diagnosis.service.service.DiagnosisService;
 
 import org.springframework.web.bind.annotation.*;
@@ -91,9 +93,16 @@ public class DiagnosisController {
 
     // GET /diagnosis/{id}
     @GetMapping("/{id}")
-    public Diagnosis getDiagnosisById(
-            @PathVariable String id) {
+    public Object getDiagnosisById(
+            @PathVariable String id,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
 
-        return diagnosisService.getDiagnosisById(id);
+        Diagnosis diagnosis = diagnosisService.getDiagnosisById(id);
+
+        if (JwtPayloadReader.isAuthenticated(authorization)) {
+            return diagnosis;
+        }
+
+        return new DiagnosisPublicDetail(diagnosis);
     }
 }
