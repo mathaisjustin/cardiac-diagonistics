@@ -1,11 +1,10 @@
 package com.elsevier.cardiac.diagnosis.service.controller;
 
 import com.elsevier.cardiac.diagnosis.service.dto.AdvancedSearchRequest;
-import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResponse;
+import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResult;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisListItem;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisPublicDetail;
-import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisSearchRequest;
 import com.elsevier.cardiac.diagnosis.service.exception.UnauthorizedException;
 import com.elsevier.cardiac.diagnosis.service.exception.ValidationException;
 import com.elsevier.cardiac.diagnosis.service.security.JwtPayloadReader;
@@ -27,6 +26,8 @@ public class DiagnosisController {
     private static final Set<String> VALID_PAIN_TYPES = Set.of(
             "Typical Angina", "Atypical Angina", "Non-Anginal Pain", "Asymptomatic"
     );
+
+    private static final Set<String> VALID_CHARACTERISTICS = Set.of("age", "gender", "painType");
 
     private final DiagnosisService diagnosisService;
 
@@ -101,23 +102,23 @@ public class DiagnosisController {
         return diagnosisService.advancedSearch(request);
     }
 
-    // GET /diagnosis/analysis/treatment?gender=Male&age=67&bp=140&painType=Typical%20Angina
-    @GetMapping("/analysis/treatment")
-    public AnalysisResponse analyzeTreatment(
-            @RequestParam(required = false) String gender,
-            @RequestParam(required = false) Integer age,
-            @RequestParam(required = false) Integer bp,
-            @RequestParam(required = false) String painType) {
+    // GET /diagnosis/analysis?by=age|gender|painType
+    // Registered users only. Always runs against the full dataset -
+    // not affected by any search filters.
+    @GetMapping("/analysis")
+    public AnalysisResult analyze(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam(required = false) String by) {
 
-        DiagnosisSearchRequest request =
-                new DiagnosisSearchRequest();
+        if (!JwtPayloadReader.isAuthenticated(authorization)) {
+            throw new UnauthorizedException("Treatment analysis requires you to be logged in");
+        }
 
-        request.setGender(gender);
-        request.setAge(age);
-        request.setBp(bp);
-        request.setPainType(painType);
+        if (by == null || !VALID_CHARACTERISTICS.contains(by)) {
+            throw new ValidationException("by must be one of: " + VALID_CHARACTERISTICS);
+        }
 
-        return diagnosisService.analyzeTreatment(request);
+        return diagnosisService.analyzeByCharacteristic(by);
     }
 
     // GET /diagnosis/validate/{id}
