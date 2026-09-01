@@ -13,7 +13,6 @@ import com.elsevier.cardiac.diagnosis.service.service.DiagnosisService;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -119,17 +118,6 @@ public class DiagnosisController {
         }
 
         return diagnosisService.analyzeByCharacteristic(by);
-    }
-
-    // GET /diagnosis/validate/{id}
-    @GetMapping("/validate/{id}")
-    public Map<String, Boolean> validateDiagnosis(
-            @PathVariable String id) {
-
-        boolean exists =
-                diagnosisService.diagnosisExists(id);
-
-        return Map.of("exists", exists);
     }
 
     // GET /diagnosis/{id}

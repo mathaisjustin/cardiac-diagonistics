@@ -182,15 +182,6 @@ public class DiagnosisService {
                 .orElse(null);
     }
 
-    // Check whether diagnosis exists
-    public boolean diagnosisExists(String id) {
-
-        return getAllDiagnoses()
-                .stream()
-                .anyMatch(diagnosis ->
-                        diagnosis.getId().equals(id));
-    }
-
     // Create diagnosis
     public Diagnosis createDiagnosis(
             Diagnosis diagnosis) {
