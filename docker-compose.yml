@@ -125,6 +125,33 @@ services:
       kafka:
         condition: service_healthy
 
+  bookmark-service:
+    build:
+      context: ./bookmark-service
+      dockerfile: Dockerfile
+    container_name: cardiac-bookmark-service
+    restart: unless-stopped
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: cardiac-nosql-service
+      DB_PORT: 27017
+      DB_USER: root
+      DB_PASSWORD: rootpassword
+      REDIS_HOST: cardiac-redis-service
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: rootpassword
+      KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+    networks:
+      - cardiac-net
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
 networks:
   cardiac-net:
     name: cardiac-net
