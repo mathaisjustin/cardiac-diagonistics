@@ -39,24 +39,4 @@ public class DiagnosisApiClient {
             );
         }
     }
-
-    // POST diagnosis to external API
-    public Diagnosis createDiagnosis(
-            Diagnosis diagnosis) {
-
-        try {
-
-            return restTemplate.postForObject(
-                    diagnosisApiUrl + "/diagnosis",
-                    diagnosis,
-                    Diagnosis.class
-            );
-
-        } catch (RestClientException exception) {
-
-            throw new ExternalApiException(
-                    "Unable to create diagnosis"
-            );
-        }
-    }
 }

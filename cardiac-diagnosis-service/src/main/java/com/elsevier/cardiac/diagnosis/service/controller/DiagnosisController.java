@@ -44,14 +44,6 @@ public class DiagnosisController {
                 .collect(Collectors.toList());
     }
 
-    // POST /diagnosis
-    @PostMapping
-    public Diagnosis createDiagnosis(
-            @RequestBody Diagnosis diagnosis) {
-
-        return diagnosisService.createDiagnosis(diagnosis);
-    }
-
     // GET /diagnosis/search?gender=Male&painType=Typical%20Angina&ageMin=40&ageMax=60&bpMin=120&bpMax=150
     // Registered users only.
     @GetMapping("/search")

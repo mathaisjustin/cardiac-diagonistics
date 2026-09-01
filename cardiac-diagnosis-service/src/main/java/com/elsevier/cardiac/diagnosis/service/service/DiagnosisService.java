@@ -181,12 +181,4 @@ public class DiagnosisService {
                 .map(Map.Entry::getKey)
                 .orElse(null);
     }
-
-    // Create diagnosis
-    public Diagnosis createDiagnosis(
-            Diagnosis diagnosis) {
-
-        return diagnosisApiClient.createDiagnosis(
-                diagnosis);
-    }
 }
