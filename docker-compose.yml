@@ -44,6 +44,42 @@ services:
       timeout: 5s
       retries: 10
 
+  mongo:
+    image: mongo:7.0
+    container_name: cardiac-nosql-service
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - cardiac-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7.2
+    container_name: cardiac-refit-service
+    restart: unless-stopped
+    command: ["redis-server", "--requirepass", "rootpassword"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cardiac-net
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "rootpassword", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   auth-service:
     build:
       context: ./cardiac-auth-service
@@ -96,3 +132,5 @@ networks:
 volumes:
   mysql_data:
   kafka_data:
+  mongo_data:
+  redis_data:
