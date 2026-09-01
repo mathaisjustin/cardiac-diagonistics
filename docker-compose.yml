@@ -65,7 +65,7 @@ services:
 
   redis:
     image: redis:7.2
-    container_name: cardiac-refit-service
+    container_name: cardiac-redis-service
     restart: unless-stopped
     command: ["redis-server", "--requirepass", "rootpassword"]
     ports:

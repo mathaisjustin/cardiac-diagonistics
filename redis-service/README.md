@@ -1,11 +1,11 @@
-# refit-service
+# redis-service
 
 Dockerized Redis instance shared by the other cardiac-diagnostics services as a cache / session store.
 
 ## Usage
 
 ```bash
-cd refit-service
+cd redis-service
 docker compose up -d
 ```
 
@@ -15,7 +15,7 @@ This is a bare Redis instance only — each service is responsible for the keys/
 
 ## Connection details
 
-- Host: `localhost` (or `cardiac-refit-service` from another container on `cardiac-net`)
+- Host: `localhost` (or `cardiac-redis-service` from another container on `cardiac-net`)
 - Port: `6379`
 - Password: `rootpassword`
 
@@ -30,4 +30,4 @@ networks:
       name: cardiac-net
 ```
 
-Then use `cardiac-refit-service:6379` as the Redis host.
+Then use `cardiac-redis-service:6379` as the Redis host.
