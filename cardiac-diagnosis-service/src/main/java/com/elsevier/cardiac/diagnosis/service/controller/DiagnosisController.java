@@ -22,8 +22,10 @@ public class DiagnosisController {
 
     private static final Set<String> VALID_GENDERS = Set.of("Male", "Female");
 
+    // Matches the external Diagnosis API's real casing ("Non-anginal Pain", lowercase "a") -
+    // validated case-insensitively below so this can't drift out of sync again.
     private static final Set<String> VALID_PAIN_TYPES = Set.of(
-            "Typical Angina", "Atypical Angina", "Non-Anginal Pain", "Asymptomatic"
+            "Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"
     );
 
     private static final Set<String> VALID_CHARACTERISTICS = Set.of("age", "gender", "painType");
@@ -65,11 +67,11 @@ public class DiagnosisController {
             throw new ValidationException("At least one search filter is required");
         }
 
-        if (gender != null && !VALID_GENDERS.contains(gender)) {
+        if (gender != null && !containsIgnoreCase(VALID_GENDERS, gender)) {
             throw new ValidationException("gender must be one of: " + VALID_GENDERS);
         }
 
-        if (painType != null && !VALID_PAIN_TYPES.contains(painType)) {
+        if (painType != null && !containsIgnoreCase(VALID_PAIN_TYPES, painType)) {
             throw new ValidationException("painType must be one of: " + VALID_PAIN_TYPES);
         }
 
@@ -125,5 +127,11 @@ public class DiagnosisController {
         }
 
         return new DiagnosisPublicDetail(diagnosis);
+    }
+
+    private boolean containsIgnoreCase(Set<String> values, String candidate) {
+
+        return values.stream()
+                .anyMatch(value -> value.equalsIgnoreCase(candidate));
     }
 }
