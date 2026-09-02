@@ -1,5 +1,7 @@
 package com.elsevier.cardiac_bookmark_service.exception;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,8 @@ import java.time.LocalDateTime;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BookmarkNotFoundException.class)
     public ResponseEntity<ErrorResponse> handleBookmarkNotFound(
@@ -56,6 +60,8 @@ public class GlobalExceptionHandler {
             DataAccessException exception
     ) {
 
+        log.error("Database error: {}", exception.getMessage(), exception);
+
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
@@ -74,6 +80,8 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleGenericException(
             Exception exception
     ) {
+
+        log.error("Unhandled exception: {}", exception.getMessage(), exception);
 
         ErrorResponse errorResponse = new ErrorResponse(
                 LocalDateTime.now(),
