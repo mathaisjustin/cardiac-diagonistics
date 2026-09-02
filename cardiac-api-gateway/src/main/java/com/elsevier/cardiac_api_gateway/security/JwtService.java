@@ -37,8 +37,8 @@ public class JwtService {
         }
     }
 
-    public Long extractUserId(String token) {
-        return Long.valueOf(extractClaims(token).getSubject());
+    public String extractUserId(String token) {
+        return extractClaims(token).getSubject();
     }
 
     public String extractEmail(String token) {

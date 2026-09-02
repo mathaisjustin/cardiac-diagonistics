@@ -36,6 +36,19 @@
 			<artifactId>spring-cloud-starter-gateway-server-webmvc</artifactId>
 		</dependency>
 
+		<!-- Eureka client - registers this gateway in the service registry, and resolves
+		     lb:// route URIs to a live registered instance -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+		</dependency>
+
+		<!-- Load balancer - resolves lb://<eureka-app-name> route URIs -->
+		<dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-loadbalancer</artifactId>
+		</dependency>
+
 		<!-- JWT API -->
 		<dependency>
 			<groupId>io.jsonwebtoken</groupId>
@@ -93,6 +106,7 @@
 			</plugin>
 
 		</plugins>
+		<finalName>cardiac-api-gateway</finalName>
 	</build>
 
 </project>
