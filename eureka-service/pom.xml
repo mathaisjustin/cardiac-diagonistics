@@ -5,7 +5,7 @@
 	<parent>
 		<groupId>org.springframework.boot</groupId>
 		<artifactId>spring-boot-starter-parent</artifactId>
-		<version>3.3.5</version>
+		<version>4.0.8</version>
 		<relativePath/> <!-- lookup parent from repository -->
 	</parent>
 	<groupId>com.elsevier</groupId>
@@ -28,15 +28,7 @@
 	</scm>
 	<properties>
 		<java.version>17</java.version>
-		<!--
-			Pinned to Spring Boot 3.x here (unlike the other services on 4.0.8) -
-			spring-cloud-dependencies has no release yet that's binary-compatible
-			with Spring Boot 4 (Eureka Server's autoconfiguration references a
-			class Boot 4 renamed, causing a NoClassDefFoundError at startup).
-			This service shares no code with the others, so it's safe to pin
-			independently to a known-stable pairing.
-		-->
-		<spring-cloud.version>2023.0.3</spring-cloud.version>
+		<spring-cloud.version>2025.1.3</spring-cloud.version>
 	</properties>
 	<dependencies>
 		<dependency>
