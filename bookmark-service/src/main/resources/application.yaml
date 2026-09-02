@@ -1,0 +1,32 @@
+spring:
+  application:
+    name: cardiac-bookmark-service
+
+  mongodb:
+    uri: mongodb://${DB_USER:root}:${DB_PASSWORD:rootpassword}@${DB_HOST:localhost}:${DB_PORT:27017}/bookmark_db?authSource=admin
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:rootpassword}
+
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: bookmark-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+
+server:
+  port: ${SERVER_PORT:8082}
+
+bookmark:
+  kafka:
+    topic: bookmark.created
+  cache:
+    ttl-seconds: 300
