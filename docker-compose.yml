@@ -80,6 +80,24 @@ services:
       timeout: 5s
       retries: 10
 
+  eureka:
+    build:
+      context: ./eureka-service
+      dockerfile: Dockerfile
+    container_name: cardiac-eureka-service
+    restart: unless-stopped
+    ports:
+      - "8761:8761"
+    environment:
+      EUREKA_HOSTNAME: eureka
+    networks:
+      - cardiac-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8761/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
   diagnosis-api:
     image: stackroutenew/diagnosisapi
     container_name: cardiac-diagnosis-api
@@ -104,12 +122,16 @@ services:
       DB_PASSWORD: rootpassword
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
       JWT_SECRET: ${JWT_SECRET:-dGVzdC1zZWNyZXQtZm9yLWxvY2FsLXRlc3Rpbmctb25seS1uZXZlci11c2UtaW4tcHJvZA==}
+      EUREKA_URL: http://eureka:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: cardiac-auth-service
     networks:
       - cardiac-net
     depends_on:
       mysql:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      eureka:
         condition: service_healthy
 
   user-profile-service:
@@ -126,12 +148,16 @@ services:
       DB_USER: root
       DB_PASSWORD: rootpassword
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      EUREKA_URL: http://eureka:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: cardiac-user-profile-service
     networks:
       - cardiac-net
     depends_on:
       mysql:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      eureka:
         condition: service_healthy
 
   diagnosis-service:
@@ -145,12 +171,16 @@ services:
     environment:
       EXTERNAL_DIAGNOSIS_API_URL: http://diagnosis-api:3232
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      EUREKA_URL: http://eureka:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: cardiac-diagnosis-service
     networks:
       - cardiac-net
     depends_on:
       diagnosis-api:
         condition: service_started
       kafka:
+        condition: service_healthy
+      eureka:
         condition: service_healthy
 
   bookmark-service:
@@ -170,6 +200,8 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: rootpassword
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      EUREKA_URL: http://eureka:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: cardiac-bookmark-service
     networks:
       - cardiac-net
     depends_on:
@@ -178,6 +210,8 @@ services:
       redis:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      eureka:
         condition: service_healthy
 
 networks:
