@@ -1,0 +1,9 @@
+server:
+  port: 9090
+
+spring:
+  application:
+    name: cardiac-api-gateway
+
+jwt:
+  secret: ${JWT_SECRET}
