@@ -37,7 +37,7 @@ stories and acceptance criteria behind these features.
 |---|---|---|
 | Frontend | Vite + React + TanStack Query/Router + MUI | Pure SPA behind the Gateway — no SSR needed; MUI gives ready table/form components for a data-heavy app. |
 | Backend services | Java + Spring Boot, built with Maven | One service per business responsibility (see below). |
-| Database | MySQL (one instance per service) | One consistent engine across UserProfile, Authentication, and Bookmark. |
+| Database | MySQL (Authentication, UserProfile) + MongoDB (Bookmark) | Bookmark deviated to MongoDB + Redis in practice — see its [`data-model.md`](./01-services/bookmark-service/data-model.md). |
 | Service discovery | Eureka | Services find each other by name instead of hardcoded addresses. |
 | Edge/routing | Spring Cloud Gateway | Single entry point for the frontend; validates JWTs and enforces which routes need auth, routes to the right service. |
 | Async messaging | Kafka | Decouples services that need to react to events (e.g. a new registration) without calling each other directly. |
@@ -50,8 +50,10 @@ under [`00-infrastructure/adr/`](./00-infrastructure/adr/).
 
 ## Map of the docs
 
-This repo is documentation-only. Each section below is being written bottom-up — foundational
-pieces first, so later docs can build on ones already agreed. Links go live as each doc lands.
+Four backend services (Authentication, UserProfile, Diagnosis, Bookmark) plus Eureka Service are
+built and running via Docker Compose. The API Gateway and frontend are not built yet. Docs under
+`01-services/` and `00-infrastructure/` describe the actual running code; where the original plan
+changed during implementation, each doc says so.
 
 - **[ARCHITECTURE.md](./ARCHITECTURE.md)** — the whole-system picture: client → API Gateway →
   services → databases, with a diagram. Start here before any individual doc.
@@ -74,5 +76,5 @@ pieces first, so later docs can build on ones already agreed. Links go live as e
 
 ## Status
 
-🚧 Living document. This README will be filled in and re-linked as each section below is
-drafted and reviewed.
+✅ Authentication, UserProfile, Diagnosis, Bookmark, and Eureka services are built and verified
+working together end-to-end. 🚧 API Gateway and frontend are not built yet.

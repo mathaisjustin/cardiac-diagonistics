@@ -1,127 +1,107 @@
 # API Contract
 
-Four routes reached via the API Gateway, plus one internal route Bookmark Service calls
-directly. Per the Gateway's
-[route protection map](../../00-infrastructure/api-gateway/README.md#route-protection-map).
-Error shape and status codes follow [api-conventions](../../03-cross-cutting/api-conventions.md).
+Base path: `/diagnosis`, port `8083`. No API Gateway yet — called directly. `X-User-Id` is a
+plain header, trusted as-is (no signature check).
 
-| Route | Protection |
+| Route | Auth |
 |---|---|
 | `GET /diagnosis` | Public |
-| `GET /diagnosis/{id}` | Public |
-| `GET /diagnosis/search` | **Protected** |
-| `GET /diagnosis/analysis` | **Protected** |
+| `GET /diagnosis/{id}` | Optional — response shape changes if present |
+| `GET /diagnosis/search` | Requires `X-User-Id` |
+| `GET /diagnosis/analysis` | Requires `X-User-Id` |
+| `POST /diagnosis/{id}/bookmark` | Requires `X-User-Id` |
 
-## The record shape
-
-Every route below returns records in this shape (detail view) or a subset of it (list view):
-
-```json
-{
-  "id": "1",
-  "gender": "Male",
-  "age": 45,
-  "bp": "130/85",
-  "painType": "Typical Angina",
-  "cholesterol": 233,
-  "diabetic": true,
-  "smoker": false,
-  "treatment": "Medication"
-}
-```
-
-`id` is whatever the external Diagnosis API assigns — this service doesn't generate or reshape
-it, just passes it through (relevant since it's also what Bookmark Service stores as
-`diagnosisRecordId`).
+Raw field names from the external API: `id`, `gender`, `age` (int), `bp` (int), `cholesterol`
+(int), `diabetic` (String), `smoking_status`, `pain_type`, `treatment` (String). Valid genders:
+`Male`, `Female`. Valid pain types: `Typical Angina`, `Atypical Angina`, `Non-anginal Pain`
+(lowercase "a" — the external dataset's actual casing), `Asymptomatic`. Gender/pain-type matching
+is case-insensitive throughout, so client casing doesn't have to match exactly.
 
 ## `GET /diagnosis`
 
-Returns the full list of diagnosis records, fetched live from the external Diagnosis API.
+Public, no auth. Returns list-view fields only: `id, gender, age, cholesterol, diabetic,
+smoking_status, pain_type, treatment` — **`bp` is not included** in list view.
 
-**Behavior**: no filtering server-side. Basic browsing/searching for Guest and Registered Users
-alike is done by the **frontend filtering this full list client-side** — deliberately not a
-backend route, since it doesn't need to be (US-04's "loading state" / "error state" acceptance
-criteria apply to this call).
+**Success — `200 OK`**: array of records.
 
-**Success — `200 OK`**: array of records, **list-view fields only** — `id`, `gender`, `age`,
-`bp`, `painType`, `treatment` (US-04's list view; `cholesterol`/`diabetic`/`smoker` are detail-
-only, not sent here to keep the list payload smaller).
-
-**Errors**
-
-| Status | Code | When |
-|---|---|---|
-| `503` | `EXTERNAL_API_UNAVAILABLE` | The external Diagnosis API didn't respond. |
+**Errors**: `503` if the external API doesn't respond.
 
 ## `GET /diagnosis/{id}`
 
-Returns full detail for one record (US-04: "clicking a record shows full details including
-cholesterol, diabetic status and smoking status").
+**With `X-User-Id`**: returns the full record (adds `bp` and `treatment` beyond list view).
+**Without it**: returns a public-detail subset — `id, gender, age, bp, cholesterol, diabetic,
+smoking_status, pain_type` (no `treatment`).
 
-**Success — `200 OK`**: the full record shape above.
+**Errors**: `404` if no record with that id; `503` if the external API doesn't respond.
 
-**Also used internally**: this is the same route Bookmark Service calls directly to confirm a
-record exists before saving a bookmark reference to it — see [`flows.md`](./flows.md).
+## `GET /diagnosis/search`
 
-**Errors**
+**Requires** `X-User-Id` — `401` if missing.
 
-| Status | Code | When |
-|---|---|---|
-| `404` | `RECORD_NOT_FOUND` | No record with that ID. This is what Bookmark Service's direct call checks for. |
-| `503` | `EXTERNAL_API_UNAVAILABLE` | The external Diagnosis API didn't respond. |
+**Query params** (all optional individually, **≥1 required**): `gender`, `painType`, `ageMin`,
+`ageMax`, `bpMin`, `bpMax` (ints).
 
-## `GET /diagnosis/search?painType=&age=&bp=&gender=` — Protected
+**Validation — `400`**: no filter given at all; `gender` not a recognized value; `painType` not a
+recognized value; `ageMin > ageMax`; `bpMin > bpMax`.
 
-Advanced search across the full dataset (US-05), any combination of the four fields.
+**Success — `200 OK`**: array of full-detail records matching all given filters (range filters
+inclusive, gender/painType exact case-insensitive match). Empty array is a normal response.
 
-**Request**: query params, all optional individually but **at least one required** — an empty
-search is just browsing, which is what `GET /diagnosis` is for.
+**Errors**: `503` if the external API doesn't respond.
 
-**Behavior**: fetches from the external API (filtered via its own query params where it supports
-combining them, otherwise the full set filtered here) and returns matches.
+## `GET /diagnosis/analysis?by=age|gender|painType`
 
-**Success — `200 OK`**: array of matching records (list-view fields, same as `GET /diagnosis`).
-An empty array is a **normal response**, not an error (US-05: "a clear 'no results' message
-shows when nothing matches" is a frontend concern given an empty array).
+**Requires** `X-User-Id` — `401` if missing. `by` required — `400` if missing/invalid.
 
-**Errors**
-
-| Status | Code | When |
-|---|---|---|
-| `400` | `VALIDATION_ERROR` | No filter provided at all — `fields` explains at least one of `painType`/`age`/`bp`/`gender` is required. |
-| `503` | `EXTERNAL_API_UNAVAILABLE` | The external Diagnosis API didn't respond. |
-
-## `GET /diagnosis/analysis?by=age|gender|painType` — Protected
-
-Treatment-recommendation breakdown by one characteristic at a time (US-06).
-
-**Request**: `by` — required, must be exactly one of `age`, `gender`, `painType`.
-
-**Behavior**: fetches the **entire** dataset from the external API (not just current search
-results — explicit US-06 acceptance criteria) and aggregates treatment counts grouped by the
-requested characteristic, computed in-memory on each call (no caching — see
-[ADR-0003](../../00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md), this dataset
-is small enough that recomputing per request is fine).
+Always runs against the entire dataset — current search filters don't apply.
 
 **Success — `200 OK`**
 
 ```json
 {
   "characteristic": "age",
+  "totalRecords": 303,
+  "overallTreatmentCounts": { "Medication": 120, "Lifestyle Changes": 90, "...": 0 },
+  "overallTreatmentPercentages": { "Medication": 39.6, "...": 0 },
   "breakdown": [
-    { "value": "40-49", "treatments": { "Medication": 12, "Surgery": 3 } },
-    { "value": "50-59", "treatments": { "Medication": 9, "Surgery": 7 } }
+    {
+      "value": "40-49",
+      "count": 55,
+      "treatmentCounts": { "Medication": 30, "...": 0 },
+      "treatmentPercentages": { "Medication": 54.5, "...": 0 },
+      "dominantTreatment": "Medication"
+    }
   ]
 }
 ```
 
-Exact bucketing for `age` (e.g. by decade, as above) is a frontend/display decision, not fixed
-here yet — `gender` and `painType` group by their existing discrete values directly, no
-bucketing needed.
+`age` is grouped into decade buckets (`"40-49"`, sorted naturally); `gender`/`painType` groups are
+sorted by descending count. Percentages are rounded to 1 decimal.
+
+**Errors**: `503` if the external API doesn't respond.
+
+## `POST /diagnosis/{id}/bookmark`
+
+**Requires** `X-User-Id` — `401` if missing.
+
+Resolves the record, builds a snapshot, and publishes it to Kafka (`bookmark.created`) for
+Bookmark Service to consume and store — see [`messaging.md`](./messaging.md). This route itself
+has no database of its own; it does not wait for Bookmark Service to actually save anything.
+
+**Success — `202 Accepted`**
+
+```json
+{ "message": "Bookmark request submitted", "diagnosisId": "af5b" }
+```
 
 **Errors**
 
-| Status | Code | When |
-|---|---|---|
-| `400` | `VALIDATION_ERROR` | `by` missing, or not one of the three allowed values. |
-| `503` | `EXTERNAL_API_UNAVAILABLE` | The external Diagnosis API didn't respond. |
+| Status | When |
+|---|---|
+| `404` | No record with that id. |
+| `503` | The Kafka publish failed — `{message:"Bookmarking is temporarily unavailable"}`. |
+
+## Error response shape
+
+`{ "status": <int>, "message": "...", "timestamp": "..." }` for every handled exception; `500`
+generic message for anything unhandled.

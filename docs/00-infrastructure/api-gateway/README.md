@@ -35,25 +35,29 @@ flowchart TD
 
 ## Route protection map
 
-The source of truth for "does this route need a token." Grows as each service is grilled;
-routes not yet decided are marked TBD rather than guessed at.
+Reflects the routes actually built in each service today — see each service's own
+`api-contract.md` for the full contract (request/response shapes, error codes).
 
 | Route | Service | Protection |
 |---|---|---|
-| `POST /auth/register` | Authentication | Public |
-| `POST /auth/login` | Authentication | Public |
+| `POST /api/auth/register` | Authentication | Public |
+| `POST /api/auth/login` | Authentication | Public |
+| `POST /api/auth/refresh` | Authentication | Public |
+| `POST /api/auth/logout` | Authentication | Public |
+| `POST /api/auth/change-password` | Authentication | **Protected** |
 | `GET /profile` | UserProfile | **Protected** |
 | `PUT /profile` | UserProfile | **Protected** |
 | `GET /diagnosis` | Diagnosis | Public |
-| `GET /diagnosis/{id}` | Diagnosis | Public |
-| `GET /diagnosis/search` | Diagnosis | **Protected** — restricted to Registered Users, a deliberate deviation from the original "Guest or Registered" backlog spec |
-| `GET /diagnosis/analysis` | Diagnosis | **Protected** — US-06 scopes this to Registered Users |
-| `POST /bookmarks` | Bookmark | **Protected** |
+| `GET /diagnosis/{id}` | Diagnosis | Optional — shows less detail if no identity present |
+| `GET /diagnosis/search` | Diagnosis | **Protected** |
+| `GET /diagnosis/analysis` | Diagnosis | **Protected** |
+| `POST /diagnosis/{id}/bookmark` | Diagnosis | **Protected** — bookmark *creation* lives here, not on Bookmark Service; it publishes to Kafka for Bookmark Service to consume, see [ADR-0015 and Diagnosis Service's `messaging.md`](../../01-services/diagnosis-service/messaging.md) |
 | `GET /bookmarks` | Bookmark | **Protected** |
 | `DELETE /bookmarks/{id}` | Bookmark | **Protected** |
 
-Every route is now decided. All Bookmark routes require an account (US-07: "Guests are prompted
-to log in or register if they try to bookmark").
+Until this Gateway is actually built, every route above is called directly on its owning
+service's own port, and "protected" today just means the service reads (and trusts, unvalidated)
+an `X-User-Id` header sent by the caller — see the trust-model note in each service's README.
 
 ## What downstream services receive
 

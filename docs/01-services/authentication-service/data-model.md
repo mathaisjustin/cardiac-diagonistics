@@ -1,33 +1,34 @@
 # Data Model
 
-Authentication Service owns one table, in its own MySQL database
-([ADR-0008](../../00-infrastructure/adr/0008-mysql-as-database-engine.md)) — no other service
-reads or writes it directly.
+Two tables, in this service's own MySQL database `auth_db` (auto-created on boot,
+`ddl-auto: update`) — no other service reads or writes it directly.
 
 ## `users`
 
-| Field | Type | Notes |
+| Column | Type | Notes |
 |---|---|---|
-| `id` | identifier (PK) | Generated at registration. This **is** the canonical user ID used system-wide — it's what gets published to Kafka for UserProfile to key its profile record on, and what goes inside the JWT. |
-| `email` | `VARCHAR(255)`, unique | The login identity. Registration is rejected if this already exists. 255 is the standard practical max for an email address. |
-| `password_hash` | `VARCHAR(60)` | A bcrypt hash — always exactly 60 characters in bcrypt's standard encoded form, regardless of password length. The plaintext password is never stored, never logged. |
-| `created_at` | timestamp | When the account was created. |
+| `user_id` | `VARCHAR`, PK | A UUID string, generated in `@PrePersist` (`UUID.randomUUID().toString()`) — application-generated, not a DB auto-increment. This is the canonical user ID used system-wide: it's the JWT `sub` claim and the key published to Kafka for UserProfile to key its profile record on. |
+| `email` | `VARCHAR`, unique, not null | The login identity. |
+| `password_hash` | `VARCHAR`, not null | A BCrypt hash. Plaintext is never stored or logged. |
+| `created_at` | `TIMESTAMP`, not null | Set at registration. |
+| `updated_at` | `TIMESTAMP`, not null | Set at registration; **not** touched again on password change — changing a password does not update this column. |
 
-That's it for this phase — no `status`, `roles`, or session/token tables. There's no
-role/permission distinction anywhere in the case study (every Registered User has the same
-access), and logout/session handling doesn't need server-side state — see
-[`security.md`](./security.md).
+First name, last name, contact number, and department are collected at registration but never
+stored here — they're published to Kafka and belong to UserProfile Service. See
+[`messaging.md`](./messaging.md).
 
-**Deliberately not stored here**: first name, last name, phone number. Those are collected at
-registration (see [`api-contract.md`](./api-contract.md)) but belong to UserProfile Service, not
-Authentication — they're published to Kafka and never touch this table. This is why
-[`messaging.md`](./messaging.md) and
-[ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md) treat
-that Kafka publish so carefully: this table has no fallback copy of that data if the publish
-were ever lost.
+## `refresh_tokens`
 
-## Not modeled yet
+| Column | Type | Notes |
+|---|---|---|
+| `id` | `BIGINT`, PK, auto-increment | Standard DB-generated identity. |
+| `user_id` | `VARCHAR`, unique, not null | FK to `users.user_id`. Unique — each user has **at most one** active row; a new login/refresh deletes the old row first. |
+| `token_hash` | `VARCHAR`, unique, not null | SHA-256 hash of the raw token, Base64-encoded. The raw token (32 random bytes, base64url, no padding) is never stored — only its hash, so a DB leak doesn't leak usable tokens. |
+| `expires_at` | `TIMESTAMP`, not null | `now + 7 days` at issuance. |
+| `created_at` | `TIMESTAMP`, not null | |
+| `revoked` | `BOOLEAN`, not null, default `false` | Set `true` on logout or on a successful password change. A revoked row is not deleted — it's kept and just fails validation on reuse. |
 
-Password reset (deferred — see [`BACKLOG.md`](../../BACKLOG.md)) will need somewhere to store a
-reset token/code and its expiry when it's built. Not added now to avoid documenting fields for a
-flow that doesn't exist yet.
+## Not modeled
+
+No `roles`/`status` column — every registered user has identical access in this system. No
+password-reset table — password reset (backlog) isn't built yet.

@@ -2,63 +2,51 @@
 
 ## Password hashing
 
-Passwords are hashed with **bcrypt**, via Spring Security's `PasswordEncoder`. The plaintext
-password exists only for the instant it's being checked (login) or hashed (registration) — it is
-never stored, logged, or put in a token.
+Passwords are hashed with **BCrypt** via Spring Security's `PasswordEncoder`. Plaintext exists
+only for the instant it's being checked (login) or hashed (registration) — never stored or
+logged. There is currently **no enforced password policy** (no minimum length, no character-class
+requirement) beyond `@NotBlank`.
 
-**Password policy** (registration rejects anything weaker), precisely: **8–72 characters**, at
-least one letter and one number. As a regex: `^(?=.*[A-Za-z])(?=.*\d).{8,72}$`. This is a
-starting default, not a locked decision — easy to tighten later without affecting anything else
-in this doc set.
-
-**Why 72 is the upper bound, not an arbitrary round number**: bcrypt silently truncates anything
-past 72 *bytes* — a 100-character password and its first-72-bytes prefix would hash identically,
-which is confusing and worth avoiding outright rather than letting someone set a password that's
-silently weaker than they think. Enforcing 72 as a hard max at validation time means what the
-user typed is exactly what gets hashed, nothing truncated. On `POST /auth/register`, a password
-outside this range returns `400 VALIDATION_ERROR` with `fields.password` explaining why — see
-[`api-contract.md`](./api-contract.md).
-
-## JWT contents
-
-The token carries only what's needed to identify who's making a request:
+## Access token (JWT)
 
 | Claim | Value |
 |---|---|
-| `userId` | The user's ID from the `users` table. |
-| `email` | The user's email. |
-| `iat` / `exp` | Issued-at and expiry timestamps. |
+| `sub` | The user's `user_id` (UUID string) — **not** the email. |
+| `email` | The user's email, as a custom claim. |
+| `iat` / `exp` | Issued-at / expiry. |
 
-**The password is never in the token.** A JWT's payload is base64-encoded, not encrypted —
-anything inside it is readable by the browser, dev tools, and anything the token passes through.
-The password is checked once, at login, against the bcrypt hash — after that it's not needed
-again, which is the entire point of issuing a token in the first place.
+Signed with HMAC (`Keys.hmacShaKeyFor(JWT_SECRET.getBytes())`, jjwt 0.13.0 — the exact HS
+algorithm is selected automatically from the secret's byte length). **Expiry: 15 minutes**
+(`jwt.access-token-expiration = 900000` ms).
 
-## Signing and validation
+## Refresh token
 
-Authentication signs the token with a secret key shared with the API Gateway. The Gateway
-validates every token itself — signature and expiry — without calling back to Authentication
-(see [ADR-0005](../../00-infrastructure/adr/0005-stateless-jwt-validation-at-gateway.md)).
-Authentication only needs to *issue* tokens; it doesn't need to be up for the Gateway to keep
-validating existing ones.
+**Not a JWT** — an opaque random string (32 random bytes, base64url, no padding). Only its
+SHA-256 hash is stored server-side (see [`data-model.md`](./data-model.md)). **Expiry: 7 days**
+(`jwt.refresh-token-expiration = 604800000` ms). Each user has at most one active refresh token
+row — a new login or refresh deletes the previous row. `POST /api/auth/refresh` rotates it: the
+old token is deleted and consumed, a new access + refresh token pair is issued.
 
-## Expiry
+## Validation filter
 
-**60 minutes.** No refresh token — when it expires, the user logs in again. This directly
-satisfies the case study's "inactive sessions time out automatically and require re-login."
+`JwtAuthenticationFilter` runs once per request, reads `Authorization: Bearer <token>`, and if the
+signature and expiry check out, sets the authenticated principal to the token's `sub` (userId) —
+no authorities/roles attached, since this system has no role distinction. An invalid/missing token
+doesn't get rejected by the filter itself; it just leaves no authentication set, and
+`anyRequest().authenticated()` (Spring Security) is what actually rejects the request, returning
+`401 {"message":"Authentication required"}` via `JwtAuthenticationEntryPoint`.
+
+Security config: CSRF disabled, session policy **STATELESS**. Public (`permitAll`): `/register`,
+`/login`, `/refresh`, `/logout`, `/error`. Everything else (in practice, just `change-password`)
+requires a valid access token.
 
 ## Logout
 
-Logout is **client-side only**: the frontend deletes the token from local storage. There is no
-server-side blocklist or session table.
-
-This means a token that was "logged out" is still technically valid, cryptographically, until
-its natural expiry — but the 60-minute expiry keeps that window small, and it means the Gateway's
-validation stays fully stateless (no lookup against a blocklist on every request), which is the
-whole reason ADR-0005 chose stateless validation in the first place. If this project ever needs
-stronger guarantees (e.g. "logout must immediately invalidate everywhere"), that would need a
-server-side blocklist — deliberately not building that now.
+**Server-side revocation**, not purely client-side: `POST /api/auth/logout` marks the caller's
+refresh token row `revoked = true`. The **access token itself is not revoked** — it's a stateless
+JWT and remains cryptographically valid until its natural 15-minute expiry, but it can no longer
+be refreshed once the refresh token is revoked, so the session dies within 15 minutes at most.
 
 ## Out of scope for this phase
 
-Password reset — see [`BACKLOG.md`](../../BACKLOG.md).
+Password reset — not built.

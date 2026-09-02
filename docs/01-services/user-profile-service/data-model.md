@@ -1,29 +1,23 @@
 # Data Model
 
-One table, in its own MySQL database. Every row is created by the Kafka consumer (see
-[`messaging.md`](./messaging.md)) — never by an API call.
+One table, `profiles`, in its own MySQL database `profiles_db`. Every row is created by the Kafka
+consumer (see [`messaging.md`](./messaging.md)) — never by an API call.
 
-## `profiles`
-
-| Field | Type | Notes |
+| Column | Type | Notes |
 |---|---|---|
-| `user_id` | identifier (PK) | Same ID Authentication generated at registration — not a separate ID. This is what ties a profile record back to its account. |
-| `first_name` | `VARCHAR(50)` | Editable via `PUT /profile`. Matches the limit used at registration ([Authentication's api-contract.md](../authentication-service/api-contract.md)). |
-| `last_name` | `VARCHAR(50)` | Editable via `PUT /profile`. Same limit as `first_name`. |
-| `phone` | `VARCHAR(20)` | Editable via `PUT /profile`. 20 covers any real-world phone format (country code, separators) with headroom — no format validation, just a generous max length. |
-| `created_at` | timestamp | When the Kafka event was consumed and the row created. |
-| `updated_at` | timestamp | Last time the user edited their profile. |
+| `user_id` | `VARCHAR`, PK | Set directly from the Kafka event's `userId` — the same UUID string Authentication generated at registration. Not auto-generated here; not updatable. |
+| `profile_id` | `VARCHAR`, unique, not null | A separate 12-character generated ID (`UUID.randomUUID()`, first 12 hex chars, dashes stripped), assigned in `@PrePersist`. Not exposed by any current endpoint. |
+| `first_name` | `VARCHAR`, not null | Editable via `PUT /profile`. |
+| `last_name` | `VARCHAR`, not null | Editable via `PUT /profile`. |
+| `contact` | `VARCHAR`, nullable | Editable via `PUT /profile`. Sourced from the Kafka event's `contactNumber` field. |
+| `department` | `VARCHAR`, nullable | Editable via `PUT /profile`. |
+| `created_at` | `TIMESTAMP`, not null | Set in `@PrePersist` when the Kafka event is consumed. |
+| `updated_at` | `TIMESTAMP`, not null | Set in `@PrePersist`/`@PreUpdate`. |
 
-**No `email` column.** Every request this service receives already carries the caller's email as
-a Gateway-forwarded `X-User-Email` header (per
-[ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)) — read
-live from the validated JWT, not stored. See
-[ADR-0013](../../00-infrastructure/adr/0013-email-never-duplicated-into-userprofile.md) for why
-a stored copy was deliberately rejected.
+**No `email` column.** Every response echoes the caller's `X-User-Email` header value straight
+back, never persisted — see [ADR-0013](../../00-infrastructure/adr/0013-email-never-duplicated-into-userprofile.md).
 
 ## What's editable vs. not
 
-Only `first_name`, `last_name`, and `phone` can change via `PUT /profile` (US-09: "editable
-fields are validated before saving"). `user_id` is never touched by this service, and `email`
-isn't stored here at all — if a user ever needs to change their email, that's an Authentication
-concern, not modeled here.
+`first_name`, `last_name`, `contact`, `department` can change via `PUT /profile`. `user_id` is
+immutable; `email` isn't stored here at all.

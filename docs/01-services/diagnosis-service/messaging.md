@@ -1,24 +1,46 @@
 # Messaging
 
-**This service doesn't use Kafka at all.**
+Diagnosis Service is a **publisher only** — it never consumes anything, including nothing back
+from Bookmark Service. The two services communicate exclusively through Kafka, one direction.
 
-This was a genuine question when this service was being planned — Bookmark Service needs to
-confirm a diagnosis record exists before saving a reference to it, and the instinct was "we
-already have Kafka set up, reuse it." But every interaction Diagnosis Service has needs an
-**immediate answer**:
+This replaced an earlier idea of Bookmark Service calling `GET /diagnosis/{id}` directly to
+validate a record before saving a reference to it. That direct-call design was dropped: it would
+have made Bookmark Service depend on Diagnosis Service being up at bookmark-creation time, and it
+put the "does this record exist" check in the wrong place — Diagnosis Service already has the
+data live in hand at the moment the user clicks bookmark (`POST /diagnosis/{id}/bookmark`), so it
+makes more sense for this service to resolve the record itself and hand a **complete snapshot**
+to Bookmark Service, rather than Bookmark Service reaching back to ask.
 
-- A client browsing or searching is sitting there waiting for results.
-- Bookmark Service, when a user clicks "bookmark," is waiting to know *right now* whether the
-  record is valid before it can tell the user "bookmarked!" or show an error.
+## What it publishes
 
-Kafka is for the opposite case — fire-and-forget, no one waiting on a response (the one real
-example in this system is Authentication's registration hand-off to UserProfile, see
-[ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md)).
-Forcing Bookmark's validation check through Kafka would mean building a request/reply pattern on
-top of it — two topics, both services as producer *and* consumer, a correlation ID to match
-replies to requests, and a timeout policy for when no reply comes. That's exactly the two-way
-publisher/consumer complexity ADR-0010 removed elsewhere in this system, reintroduced here for a
-case that's fundamentally a synchronous question with a synchronous answer.
+**Trigger**: `POST /diagnosis/{id}/bookmark`.
 
-So Bookmark Service calls `GET /diagnosis/{id}` **directly** instead — see
-[`flows.md`](./flows.md) and [`api-contract.md`](./api-contract.md).
+**Topic**: `bookmark.created` · **Key**: `userId`
+
+**Payload** (`BookmarkEvent`, JSON string via Jackson):
+
+```json
+{
+  "userId": "6f1a2b3c-...",
+  "diagnosisId": "af5b",
+  "payload": {
+    "gender": "Female",
+    "age": 55,
+    "bp": "140",
+    "painType": "Atypical Angina",
+    "treatment": "Lifestyle Changes"
+  }
+}
+```
+
+Note `bp` is stringified (`String.valueOf`) even though the external API returns it as an int —
+this matches Bookmark Service's own DTO shape exactly, field for field.
+
+**Reliability**: the publish is synchronous (`.get()` on the Kafka future) — if it fails, the
+route returns `503` immediately rather than reporting success on an event that never left the
+service. There's no rollback needed here (unlike Authentication's registration), since this
+service has no database state of its own to undo.
+
+## Who consumes it
+
+Bookmark Service only — see its [`messaging.md`](../bookmark-service/messaging.md).

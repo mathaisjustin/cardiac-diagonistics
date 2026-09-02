@@ -1,22 +1,13 @@
 # API Contract
 
-Both routes are **protected** — per the Gateway's
-[route protection map](../../00-infrastructure/api-gateway/README.md#route-protection-map), a
-valid JWT is required, and the Gateway forwards the caller's identity as `X-User-Id` /
-`X-User-Email` headers (see
-[ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)). Neither
-route takes a user ID as a path or query parameter — the caller can only ever act on their own
-profile, identified from the header, never anyone else's. Error shape and status codes follow
-[api-conventions](../../03-cross-cutting/api-conventions.md).
-
-Only two routes exist. No creation route (profiles are created only via the Kafka consumer — see
-[`messaging.md`](./messaging.md)), no deletion route.
+Base path: `/profile`, port `8080`. Both routes require headers `X-User-Id` and `X-User-Email`
+(see the trust-model note in [`README.md`](./README.md) — there is no token validation, these
+headers are taken at face value). Neither route takes a user ID as a path/query parameter — the
+caller only ever acts on the identity in their own headers.
 
 ## `GET /profile`
 
-Returns the caller's own profile.
-
-**Request**: nothing — identity comes from `X-User-Id` / `X-User-Email`.
+**Request**: headers only, no body.
 
 **Success — `200 OK`**
 
@@ -25,24 +16,25 @@ Returns the caller's own profile.
   "email": "jane@example.com",
   "firstName": "Jane",
   "lastName": "Doe",
-  "phone": "555-0100"
+  "contact": "555-0100",
+  "department": "Cardiology"
 }
 ```
 
-`email` comes from the `X-User-Email` header, the rest from the database (see
-[`data-model.md`](./data-model.md)).
+`email` is echoed straight from `X-User-Email` (not read from the DB); the rest comes from the
+`profiles` table.
 
 **Errors**
 
-| Status | Code | When |
-|---|---|---|
-| `404` | `PROFILE_NOT_READY` | The Kafka event hasn't been consumed yet — see the timing gap noted in Authentication's [ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md). A dedicated code (not a generic "not found") so the frontend can specifically show "setting up your profile…" and retry, instead of a scary error — see [`flows.md`](./flows.md). |
+| Status | When |
+|---|---|
+| `404` | No profile row for this `userId` yet — the Kafka event from registration hasn't been consumed. `{message}` explains. See [`flows.md`](./flows.md). |
+| `400` | `X-User-Id` or `X-User-Email` header missing. |
+| `500` | Database error, or any other unhandled exception. |
 
 ## `PUT /profile`
 
-Replaces the caller's editable fields. **Full update, not partial** — always send all three
-fields, even ones that didn't change (simpler than partial-field semantics; the frontend already
-has the current values from a prior `GET /profile` to pre-fill the edit form).
+Full update — always send all four editable fields.
 
 **Request**
 
@@ -50,27 +42,25 @@ has the current values from a prior `GET /profile` to pre-fill the edit form).
 {
   "firstName": "Jane",
   "lastName": "Doe",
-  "phone": "555-0101"
+  "contact": "555-0101",
+  "department": "Cardiology"
 }
 ```
 
-`email` is never accepted here — UserProfile doesn't own it (see [`data-model.md`](./data-model.md)).
+All four fields `@NotBlank`. `email` is never accepted here.
 
-**Validation rules** — same limits as when these fields were first collected at registration,
-for consistency:
-
-| Field | Rule |
-|---|---|
-| `firstName` | Non-empty, max 50 characters. |
-| `lastName` | Non-empty, max 50 characters. |
-| `phone` | Non-empty. No format validation, per earlier decision. |
-
-**Success — `200 OK`** — the updated profile, same shape as `GET /profile`'s response, plus a
-confirmation the frontend shows (US-09: "a confirmation message shows once changes are saved").
+**Success — `200 OK`** — same shape as `GET /profile`'s response.
 
 **Errors**
 
-| Status | Code | When |
-|---|---|---|
-| `400` | `VALIDATION_ERROR` | A field fails its rule above — `fields` names each one that failed. |
-| `404` | `PROFILE_NOT_READY` | Same edge case as `GET /profile` — extremely unlikely here in practice, since the frontend only shows an edit form after a successful `GET /profile` already loaded the current values. |
+| Status | When |
+|---|---|
+| `400` | A field is blank (`{message:"Validation failed", validationErrors:{field: msg}}`), or the request body is malformed JSON (`{message:"Invalid request body"}`). |
+| `404` | No profile row exists yet for this `userId` — `PUT` does not create one. |
+| `400` | Missing header. |
+| `500` | Database or unhandled error. |
+
+## Error response shape
+
+`{ timestamp, status, error, message }` for all handlers, plus a `validationErrors` map on
+bean-validation failures.

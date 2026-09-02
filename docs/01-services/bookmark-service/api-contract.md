@@ -1,87 +1,64 @@
 # API Contract
 
-All three routes are **protected** — per the Gateway's
-[route protection map](../../00-infrastructure/api-gateway/README.md#route-protection-map), a
-valid JWT is required (US-07: "Guests are prompted to log in or register if they try to
-bookmark"). Identity comes from `X-User-Id`, forwarded by the Gateway (see
-[ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)) — no route
-takes a user ID as a parameter, callers only ever act on their own bookmarks. Error shape and
-status codes follow [api-conventions](../../03-cross-cutting/api-conventions.md).
+Base path: `/bookmarks`, port `8082`. Both routes require header `X-User-Id` (trusted as-is, no
+token validation). Neither route takes a user ID as a path/query param — a caller only ever acts
+on the identity in their own header, but note this also means **anyone who can set the header can
+read or delete any user's bookmarks** — see the trust-model caveat below.
 
 ## The bookmark shape
 
 ```json
 {
-  "id": "b-1",
-  "diagnosisRecordId": "1",
-  "gender": "Male",
-  "age": 45,
-  "bp": "130/85",
-  "painType": "Typical Angina",
-  "treatment": "Medication",
-  "createdAt": "2026-01-15T10:30:00Z"
+  "id": "3fa8e9c1-...",
+  "diagnosisId": "af5b",
+  "gender": "Female",
+  "age": 55,
+  "bp": "140",
+  "painType": "Atypical Angina",
+  "treatment": "Lifestyle Changes",
+  "createdAt": "2026-09-02T10:30:00"
 }
 ```
 
-The five snapshot fields are exactly Diagnosis Service's list-view fields (see its
-[`api-contract.md`](../diagnosis-service/api-contract.md)) — nothing beyond what a bookmarks
-list needs to display.
-
-## `POST /bookmarks`
-
-Bookmarks a diagnosis record.
-
-**Request**
-
-```json
-{ "diagnosisRecordId": "1" }
-```
-
-**Behavior**:
-- If this user already bookmarked this record, returns the existing bookmark without creating a
-  duplicate row (see [`data-model.md`](./data-model.md)) — idempotent, `200` not `201`.
-- Otherwise, calls Diagnosis Service directly (`GET /diagnosis/{id}`) to confirm the record
-  exists and get its display fields (see [`messaging.md`](./messaging.md)).
-  - Not found → error, nothing saved.
-  - Found → saves a snapshot ([ADR-0014](../../00-infrastructure/adr/0014-bookmark-stores-snapshot-not-reference.md))
-    and invalidates this user's cached bookmark list.
-
-**Success**: `201 Created` (new bookmark) or `200 OK` (already existed) — both return the
-bookmark shape above.
-
-**Errors**
-
-| Status | Code | When |
-|---|---|---|
-| `400` | `VALIDATION_ERROR` | `diagnosisRecordId` missing. |
-| `404` | `RECORD_NOT_FOUND` | Diagnosis Service confirmed no record exists with that ID — same code Diagnosis Service itself uses, passed through rather than wrapped in something new. |
-| `503` | `DIAGNOSIS_SERVICE_UNAVAILABLE` | The direct call to Diagnosis Service failed (service down, not reachable) — distinct from Diagnosis's own `EXTERNAL_API_UNAVAILABLE`, since this is a different failure point (Bookmark couldn't even reach Diagnosis, vs. Diagnosis reaching the external API and failing). |
+`id` is the bookmark's own MongoDB `_id` (a freshly generated UUID, unrelated to `diagnosisId`).
 
 ## `GET /bookmarks`
 
-Lists the caller's own bookmarks (US-08).
+**Request**: `X-User-Id` header only.
 
-**Behavior**: reads from the Redis cache if present; on a cache miss, reads from MySQL and
-populates the cache. Entirely self-contained — never calls Diagnosis Service.
+**Behavior**: reads from the Redis cache if present (key `bookmarks:<userId>`, 5-minute TTL); on
+a miss, reads from MongoDB and populates the cache.
 
-**Success — `200 OK`**: array of bookmarks (empty array if none — US-08: "an empty state shows
-when there are no bookmarks yet," a frontend concern given an empty array, not a special API
-response). No errors specific to this route beyond the standard auth failures the Gateway already
-handles.
+**Success — `200 OK`**: array of bookmarks belonging to that `userId` (empty array if none).
+
+**Errors**: `400` if `X-User-Id` missing; `500` on a DB error.
 
 ## `DELETE /bookmarks/{id}`
 
-Removes a bookmark (US-08: "users can remove a bookmark and it disappears from the list
-immediately"). `{id}` is the **bookmark's** ID (from the shape above), not the diagnosis
-record's.
+`{id}` is the **bookmark's own** id, not the diagnosis record's.
 
-**Behavior**: deletes the row, scoped to the caller's own `user_id` — a user can't delete
-someone else's bookmark by guessing an ID — and invalidates this user's cached bookmark list.
+**Behavior**: deletes only if `(id, userId)` both match — a request for the right bookmark id but
+the wrong `userId` header returns `404`, **not** `403`, so a caller can't distinguish "doesn't
+exist" from "belongs to someone else." Invalidates the Redis cache for that `userId` on success.
 
-**Success — `200 OK`**: confirmation.
+**Success — `200 OK`**, empty body.
 
 **Errors**
 
-| Status | Code | When |
-|---|---|---|
-| `404` | `BOOKMARK_NOT_FOUND` | No bookmark with that ID belonging to this user — returned identically whether the ID doesn't exist at all or belongs to someone else, so a caller can't use this to probe whether a given ID exists for another user. |
+| Status | When |
+|---|---|
+| `404` | No bookmark with that id belonging to this `userId`. |
+| `400` | `X-User-Id` missing. |
+| `500` | DB error, or any other unhandled exception. |
+
+## Trust-model caveat
+
+There's no API Gateway yet and this service does no token validation of its own — it takes
+whatever `userId` is in the `X-User-Id` header at face value. Until a Gateway sits in front of
+this service and forwards a header it has itself verified from a signed JWT (per
+[ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)), do not
+expose this port to untrusted clients.
+
+## Error response shape
+
+`{ timestamp, status, error, message }`.

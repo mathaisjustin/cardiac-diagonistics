@@ -1,29 +1,46 @@
 # Messaging
 
-**This service doesn't use Kafka**, for the same reason as Diagnosis Service (see its own
-[`messaging.md`](../diagnosis-service/messaging.md)): every interaction here needs an immediate
-answer — a user waiting to know their bookmark saved, waiting for their list to load, waiting for
-a removal to confirm. Nothing here is fire-and-forget.
+Bookmark Service is a **consumer only** — it never publishes. It has no direct connection to
+Diagnosis Service at all (see that service's own
+[`messaging.md`](../diagnosis-service/messaging.md) for why this replaced an earlier
+direct-call design).
 
-## The one direct call: confirming a record with Diagnosis Service
+## What it consumes
 
-At `POST /bookmarks` time only (not on every view — see
-[ADR-0014](../../00-infrastructure/adr/0014-bookmark-stores-snapshot-not-reference.md)), Bookmark
-Service calls Diagnosis Service directly:
+**Topic**: `bookmark.created` · **Consumer group**: `bookmark-service`
 
+**Payload** (`BookmarkEvent`, raw JSON string manually parsed via Jackson `ObjectMapper`):
+
+```json
+{
+  "userId": "6f1a2b3c-...",
+  "diagnosisId": "af5b",
+  "payload": {
+    "gender": "Female",
+    "age": 55,
+    "bp": "140",
+    "painType": "Atypical Angina",
+    "treatment": "Lifestyle Changes"
+  }
+}
 ```
-GET /diagnosis/{id}
-```
 
-routed via Eureka lookup, the same pattern as any other service-to-service call — not through the
-API Gateway (that's only for client-to-service traffic) and not hardcoded to an address.
+**Validation**: a message missing `userId`, `diagnosisId`, or `payload` throws
+`InvalidBookmarkEventException`.
 
-**Why not Kafka for this**: covered in depth in Diagnosis Service's
-[`messaging.md`](../diagnosis-service/messaging.md) — a request/reply pattern here would
-reintroduce the two-way publisher/consumer complexity [ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md)
-removed elsewhere, for an interaction that's fundamentally synchronous.
+**On receiving it**:
+1. Checks `findByUserIdAndDiagnosisId(userId, diagnosisId)` — **idempotent**; if a bookmark
+   already exists, logs and no-ops.
+2. Otherwise creates a new `Bookmark` document (own generated id, copying `gender/age/bp/
+   painType/treatment` from `payload`) and saves it.
+3. Calls `bookmarkCacheService.evict(userId)` — invalidates the Redis cache so the next
+   `GET /bookmarks` reflects the new bookmark. The cache is **not** populated here; it's only
+   ever written on a `GET /bookmarks` cache miss.
 
-**If Diagnosis Service (or the external API behind it) is down** when this call happens:
-bookmarking fails visibly — the user sees an error, nothing is saved. This only affects
-*creating* a new bookmark; viewing or removing existing bookmarks never depends on Diagnosis
-Service being up at all, since those never call it (see [`api-contract.md`](./api-contract.md)).
+**Error handling**: a DB save failure is wrapped as `BookmarkPersistenceException`.
+
+## If this service is down when Diagnosis Service publishes
+
+Nothing is lost — the event sits in the topic until this service is back up and consumes it.
+Diagnosis Service's `POST /diagnosis/{id}/bookmark` already returned `202` to the client the
+moment the message reached Kafka; it does not wait for this consumer to run.

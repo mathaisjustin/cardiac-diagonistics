@@ -5,129 +5,114 @@
 ```mermaid
 sequenceDiagram
     actor U as Guest User
-    participant FE as Frontend
-    participant GW as API Gateway
     participant Auth as Authentication Service
     participant DB as Auth DB (MySQL)
     participant K as Kafka
 
-    U->>FE: fills registration form<br/>(email, password, first/last name, phone)
-    FE->>GW: POST /auth/register
-    GW->>Auth: routes (public route)
-
-    Auth->>Auth: validate: email not taken,<br/>password policy, all fields present
-
+    U->>Auth: POST /api/auth/register
+    Auth->>Auth: validate fields (all @NotBlank)
     alt validation fails
-        Auth-->>FE: 400 error
-    else validation passes
-        Auth->>Auth: hash password (bcrypt)
-        Auth->>DB: store user (email, password_hash, id)
-        Auth->>K: publish event (userId, first/last name, phone)
-        K-->>Auth: producer ack
-
-        alt no ack (Kafka unreachable)
-            Auth->>DB: roll back — delete the user just created
-            Auth-->>FE: error — registration failed
+        Auth-->>U: 400
+    else email already registered
+        Auth-->>U: 409
+    else valid
+        Auth->>Auth: hash password (BCrypt)
+        Auth->>DB: save user (email, password_hash, generated UUID id)
+        Auth->>K: publish user.registered (blocks for producer ack)
+        alt no ack
+            Auth->>DB: roll back transaction (user row undone)
+            Auth-->>U: 503
         else ack received
-            Auth-->>FE: 201 success
-            FE->>U: redirect to login page
+            Auth-->>U: 201
         end
     end
 ```
 
-1. Guest User submits the registration form — email, password, first name, last name, phone
-   number, all required — from the frontend.
-2. Request reaches Authentication Service via the Gateway (public route, no token needed).
-3. Authentication validates the request: email not already taken, password meets the policy, and
-   every field is present (no field-specific format checks like phone shape — not built yet, see
-   [`api-contract.md`](./api-contract.md)).
-   - If any check fails, it returns an error immediately — nothing is stored, nothing is
-     published.
-4. Authentication hashes the password (bcrypt) and stores the new user record (email,
-   password_hash, generated user ID).
-5. Authentication publishes the registration event to Kafka (user ID, first name, last
-   name, phone) and **waits for the broker's acknowledgment** that it was received — see
-   [`messaging.md`](./messaging.md) and
-   [ADR-0011](../../00-infrastructure/adr/0011-registration-waits-for-kafka-producer-ack.md).
-   - If the broker doesn't acknowledge (Kafka unreachable), Authentication **deletes the
-     credential it just created** in step 4, then returns an error. Without this rollback, the
-     email would be stuck as "already registered" with no way to retry and no profile ever
-     created — a dead-end account. Rolling back means a failed registration leaves no trace, and
-     the user can simply try again.
-6. Once acknowledged, Authentication returns success to the client.
-7. The frontend sends the user to the login page (they are **not** automatically logged in).
-
-### After registration: UserProfile picks up the event
-
-```mermaid
-sequenceDiagram
-    participant K as Kafka
-    participant UP as UserProfile Service
-    participant UPDB as UserProfile DB (MySQL)
-
-    Note over K: event retained up to 7 days
-    K->>UP: deliver event (userId, first/last name, phone)
-    UP->>UPDB: create profile record
-```
-
-This happens asynchronously and independently of the registration flow above — Authentication
-has already responded to the client by this point and doesn't wait for it. See
-[`messaging.md`](./messaging.md).
+UserProfile Service consumes `user.registered` independently and asynchronously afterward — see
+[`messaging.md`](./messaging.md) and [UserProfile's flows](../user-profile-service/flows.md).
 
 ## Login
 
 ```mermaid
 sequenceDiagram
     actor U as Registered User
-    participant FE as Frontend
-    participant GW as API Gateway
     participant Auth as Authentication Service
     participant DB as Auth DB (MySQL)
 
-    U->>FE: enters email + password
-    FE->>GW: POST /auth/login
-    GW->>Auth: routes (public route)
+    U->>Auth: POST /api/auth/login {email, password}
     Auth->>DB: look up user by email
-    Auth->>Auth: check password against stored hash
-
-    alt no match (wrong password or unknown email)
-        Auth-->>FE: generic "invalid credentials" error
+    Auth->>Auth: check password against BCrypt hash
+    alt no match
+        Auth-->>U: 401 "Invalid email or password"
     else match
-        Auth->>Auth: issue JWT (userId, email, 60min expiry)
-        Auth-->>FE: 200 + token
-        FE->>FE: store token, treat user as logged in
+        Auth->>DB: delete any existing refresh token row for this user
+        Auth->>DB: create new refresh token row (hashed, 7-day expiry)
+        Auth->>Auth: issue access token (JWT, sub=userId, 15min)
+        Auth-->>U: 200 {accessToken, refreshToken}
     end
 ```
 
-1. Registered User submits email + password from the frontend.
-2. Request reaches Authentication Service via the Gateway (public route).
-3. Authentication looks up the user by email and checks the password against the stored hash.
-   - No match (wrong password, or no such email) → generic "invalid credentials" error, same
-     message either way.
-4. Match → Authentication issues a JWT (`userId`, `email`, 60-minute expiry) and returns it.
-5. The frontend stores the token (used on every subsequent request until it expires or the user
-   logs out) and treats the user as logged in.
+## Refresh
+
+```mermaid
+sequenceDiagram
+    actor U as Client
+    participant Auth as Authentication Service
+    participant DB as Auth DB (MySQL)
+
+    U->>Auth: POST /api/auth/refresh {refreshToken}
+    Auth->>DB: look up by hash(refreshToken)
+    alt not found / revoked / expired
+        Auth-->>U: 401
+    else valid
+        Auth->>DB: delete old row, create new row (rotated)
+        Auth->>Auth: issue new access token
+        Auth-->>U: 200 {accessToken, refreshToken}
+    end
+```
 
 ## Logout
 
 ```mermaid
 sequenceDiagram
-    actor U as Registered User
-    participant FE as Frontend
-    participant GW as API Gateway
+    actor U as Client
+    participant Auth as Authentication Service
+    participant DB as Auth DB (MySQL)
 
-    U->>FE: clicks logout
-    FE->>FE: delete token from local storage
-    Note over FE,GW: no backend call — nothing to invalidate server-side
-    U->>FE: later, visits a protected page
-    FE->>GW: request with no token
-    GW-->>FE: 401 rejected
-    FE->>U: redirect to login
+    U->>Auth: POST /api/auth/logout {refreshToken}
+    Auth->>DB: look up by hash(refreshToken)
+    alt not found
+        Auth-->>U: 401
+    else found
+        Auth->>DB: set revoked = true
+        Auth-->>U: 204
+    end
 ```
 
-1. User clicks logout.
-2. Frontend deletes the token from local storage.
-3. Nothing is sent to the backend — there's no `/auth/logout` call to make. The user is
-   effectively logged out because the frontend no longer has a token to send.
-4. Next request to a protected route has no token → Gateway rejects it → frontend redirects to
-   login.
+The access token already issued keeps working until its own 15-minute expiry — logout only
+prevents it from being refreshed again.
+
+## Change password
+
+```mermaid
+sequenceDiagram
+    actor U as Registered User
+    participant Auth as Authentication Service
+    participant DB as Auth DB (MySQL)
+
+    U->>Auth: POST /api/auth/change-password<br/>Authorization: Bearer <accessToken><br/>{oldPassword, newPassword}
+    Auth->>Auth: validate access token (JwtAuthenticationFilter)
+    alt no/invalid token
+        Auth-->>U: 401
+    else token valid
+        Auth->>DB: look up user by sub claim
+        Auth->>Auth: check oldPassword against stored hash
+        alt mismatch
+            Auth-->>U: 400 "Old password is incorrect"
+        else match
+            Auth->>DB: update password_hash
+            Auth->>DB: revoke existing refresh token
+            Auth-->>U: 200 "Password changed successfully"
+        end
+    end
+```

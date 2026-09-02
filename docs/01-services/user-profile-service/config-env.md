@@ -1,16 +1,18 @@
 # Config & Environment
 
-What UserProfile Service needs to run. Exact variable names are placeholders — finalize when the
-service is actually scaffolded.
+| Variable | Default | Purpose |
+|---|---|---|
+| `DB_HOST` | `localhost` | MySQL host for `profiles_db` (auto-created if missing). |
+| `DB_PORT` | `3306` | MySQL port. |
+| `DB_USER` | `root` | MySQL username. |
+| `DB_PASSWORD` | `rootpassword` | MySQL password. |
+| `KAFKA_BOOTSTRAP_SERVERS` | `localhost:9092` | Kafka broker address. |
+| `SERVER_PORT` | `8080` | Port this service listens on. |
+| `EUREKA_URL` | `http://localhost:8761/eureka` | Eureka `defaultZone`. |
+| `EUREKA_INSTANCE_HOSTNAME` | `localhost` | Hostname this instance registers under. |
 
-| Variable | Purpose |
-|---|---|
-| `SERVER_PORT` | Port this service listens on. |
-| `DB_URL` / `DB_USERNAME` / `DB_PASSWORD` | Connection to its own MySQL database (`userprofile_db`). |
-| `KAFKA_BROKER_URL` | Where to consume the registration event from. |
-| `KAFKA_CONSUMER_GROUP` | Consumer group ID for this service's subscription to Authentication's topic. |
-| `EUREKA_URL` | Where to register itself for service discovery. |
+No `JWT_SECRET` — this service never validates a token, it trusts `X-User-Id`/`X-User-Email`
+headers as-is (see the trust-model note in [`README.md`](./README.md)).
 
-No `JWT_SECRET` here — this service never validates a token itself, it trusts the `X-User-Id` /
-`X-User-Email` headers the Gateway already validated and forwarded (see
-[ADR-0012](../../00-infrastructure/adr/0012-gateway-forwards-identity-via-headers.md)).
+Fixed (not env-driven): consumer `group-id = user-profile-service`,
+`spring.jpa.hibernate.ddl-auto = update`.

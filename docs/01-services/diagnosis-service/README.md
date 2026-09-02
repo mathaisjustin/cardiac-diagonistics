@@ -1,42 +1,40 @@
 # Diagnosis Service
 
-A **standalone Spring Boot application** (Java, Maven, per
-[ADR-0007](../../00-infrastructure/adr/0007-backend-build-and-gateway-tooling.md)) — its own
-codebase, build, JVM process, and container.
+A **standalone Spring Boot 4 application** (`cardiac-diagnosis-service`, Java 17, Maven), its own
+container, port `8083`. Registers with Eureka as `cardiac-diagnosis-service`.
 
 ## What this service is, in one sentence
 
-A stateless request/response layer over the **external Diagnosis API** — it fetches, filters,
-and aggregates data live, on every call; it never stores anything of its own.
+A stateless request/response layer over the **real external Diagnosis API**
+(`stackroutenew/diagnosisapi`, port `3232`) — it fetches the full dataset live on every call,
+filters/aggregates it in memory, and never stores anything of its own; it also owns the
+**bookmark-creation route**, since this is where the diagnostic data actually lives.
 
 ## Responsibilities
 
-- Serve diagnosis records — list, single-record detail, advanced search, treatment analysis —
-  by calling out to the external Diagnosis API (json-server, port 3232) on every request.
-- Respond to a **direct call from Bookmark Service** confirming whether a given record ID
-  actually exists, before Bookmark saves a reference to it.
+- Serve diagnosis records — list, single-record detail, advanced search, treatment analysis — by
+  calling out to the external Diagnosis API.
+- Own `POST /diagnosis/{id}/bookmark`: resolve the record, snapshot it, and publish it to Kafka
+  for [Bookmark Service](../bookmark-service/README.md) to consume and store.
 
 ## What it does *not* do
 
-- **No database.** See [ADR-0003](../../00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md)
-  — the external API is a cheap local call, not worth mirroring.
-- **No Kafka.** Nothing here is fire-and-forget: every interaction this service has needs an
-  immediate answer (a client waiting on search results, or Bookmark Service waiting to know if a
-  record is valid before saving), so everything is a direct request/response call, not an event.
-  See [`messaging.md`](./messaging.md) for why this file exists just to say that.
-- **No write route.** The external API technically supports `POST /diagnosis`, but nothing in
-  this system's backlog creates diagnosis data — not exposed here.
+- **No database.** See [ADR-0003](../../00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md).
+- **No direct call to Bookmark Service, in either direction.** The two services only ever
+  communicate through the `bookmark.created` Kafka topic — this service is publish-only, never a
+  consumer.
+- **No write route on the external API.** Nothing in this system creates diagnosis data.
 
 ## Docs in this folder
 
-- [`api-contract.md`](./api-contract.md) — its four routes, two public, two protected.
-- [`messaging.md`](./messaging.md) — why this service doesn't use Kafka.
-- [`flows.md`](./flows.md) — browse, search, analysis, and Bookmark's validation call.
+- [`api-contract.md`](./api-contract.md) — its five routes.
+- [`messaging.md`](./messaging.md) — the `bookmark.created` event it publishes.
+- [`flows.md`](./flows.md) — browse, search, analysis, and bookmark creation.
 - [`config-env.md`](./config-env.md) — what it needs to run.
 
 ## How it fits the whole system
 
-See [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md). Reached two ways: from the client via the
-API Gateway (like every other service), and directly from Bookmark Service via a synchronous
-call routed through Eureka — the one real example of a direct service-to-service call in this
-system.
+There's no API Gateway yet — clients call this service directly on port `8083`. Browsing routes
+(`GET /diagnosis`, `GET /diagnosis/{id}`) work with or without an `X-User-Id` header (detail
+level changes accordingly); search, analysis, and bookmark creation require it. See
+[`api-contract.md`](./api-contract.md).

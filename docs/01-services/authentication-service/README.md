@@ -1,55 +1,46 @@
 # Authentication Service
 
-A **standalone Spring Boot application** (Java, built with Maven per
-[ADR-0007](../../00-infrastructure/adr/0007-backend-build-and-gateway-tooling.md)) — its own
-codebase, its own build, its own JVM process, its own container in `docker-compose.yml` (see
-[`../../folder-structure.md`](../../folder-structure.md)). It runs independently of every other
-service; the only things connecting it to the rest of the system are the API Gateway routing
-requests to it, Eureka so the Gateway can find it, its own MySQL database
-([ADR-0008](../../00-infrastructure/adr/0008-mysql-as-database-engine.md)), and the one Kafka
-topic it publishes to.
-
-Owns identity: who a user is, their credentials, and proving that identity to the rest of the
-system via JWTs. Since [ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md),
-this service also owns **registration** — it's the entry point for creating a new user, not
-just for logging an existing one in.
-
-## Scope of this phase
-
-Only **registration** and **login** are being built and documented right now. Password reset
-(backlog story US-03) is explicitly **deferred** — see [`BACKLOG.md`](../../BACKLOG.md).
+A **standalone Spring Boot 4 application** (`cardiac-auth-service`, Java 17, Maven), its own
+MySQL database (`auth_db`), its own container. Owns identity: registration, login, refresh
+tokens, logout, and password change. Registers with Eureka as `cardiac-auth-service`.
 
 ## Responsibilities
 
-- Accept new-user registration: validate input, create the user, store the credential.
-- Authenticate login attempts and issue a JWT.
-- Own the shared secret the API Gateway uses to validate JWTs statelessly (see
-  [ADR-0005](../../00-infrastructure/adr/0005-stateless-jwt-validation-at-gateway.md)).
-- Publish the one-way registration event UserProfile Service consumes to build the profile
-  record (see [ADR-0010](../../00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md)).
+- Register new users (validates input, hashes the password, stores the credential).
+- Authenticate login attempts and issue access + refresh tokens.
+- Rotate and revoke refresh tokens (`/refresh`, `/logout`).
+- Let a logged-in user change their password (`/change-password`), which also revokes their
+  existing refresh token.
+- Publish the one-way registration event `user.registered` to Kafka, consumed by
+  [UserProfile Service](../user-profile-service/README.md) to create the profile record.
 
 ## What it does *not* do
 
-- It does not own profile data (name, personal details) — that's UserProfile Service, created
-  asynchronously after registration.
-- It does not validate routes or decide what's protected — that's the Gateway
-  ([ADR-0009](../../00-infrastructure/adr/0009-route-level-authorization-at-gateway.md)). Auth
-  only issues and can be asked to sign tokens; it doesn't gate access itself.
-- It does not keep a server-side session or token blocklist — see [`security.md`](./security.md)
-  for why logout is purely client-side.
+- Does not own profile data (name, contact number, department) beyond what's needed to publish
+  the registration event — those fields live in UserProfile Service's own table, not here.
+- Does not validate an `Authorization` header itself for downstream services — there is no API
+  Gateway yet (see [`docs/00-infrastructure/api-gateway/README.md`](../../00-infrastructure/api-gateway/README.md),
+  currently a plan, not running code). Until the Gateway exists, `change-password` is the only
+  route in this service that requires a JWT, and it's validated by this service's own
+  `JwtAuthenticationFilter` directly — not by a gateway.
+- Does not maintain a server-side blocklist beyond the single-row-per-user refresh token table —
+  logout works by marking that row `revoked`, not by tracking a list of dead access tokens (access
+  tokens simply expire in 15 minutes).
 
 ## Docs in this folder
 
-- [`data-model.md`](./data-model.md) — what Authentication stores.
-- [`api-contract.md`](./api-contract.md) — its endpoints.
-- [`security.md`](./security.md) — password hashing, JWT contents/signing/expiry, logout.
-- [`messaging.md`](./messaging.md) — the Kafka event it publishes after registration.
-- [`flows.md`](./flows.md) — registration and login, step by step.
-- [`config-env.md`](./config-env.md) — what it needs to run.
-- [`BACKLOG.md`](../../BACKLOG.md) — what's deliberately deferred, and why.
+- [`data-model.md`](./data-model.md) — the `users` and `refresh_tokens` tables.
+- [`api-contract.md`](./api-contract.md) — all 5 endpoints.
+- [`security.md`](./security.md) — password hashing, JWT contents/signing/expiry, refresh token
+  mechanics, logout.
+- [`messaging.md`](./messaging.md) — the `user.registered` Kafka event.
+- [`flows.md`](./flows.md) — registration, login, refresh, logout, change-password.
+- [`config-env.md`](./config-env.md) — environment variables it reads.
 
 ## How it fits the whole system
 
-See [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md) for the system-wide picture. In short:
-the client reaches Authentication only through the API Gateway; Authentication reaches
-UserProfile only asynchronously, via Kafka, never a direct call.
+See [`../../ARCHITECTURE.md`](../../ARCHITECTURE.md). Today, without a Gateway yet, clients call
+this service directly on port `8081`. `POST /api/auth/register`, `/login`, `/refresh`, and
+`/logout` are all public routes (no token required); `POST /api/auth/change-password` requires a
+valid access token in the `Authorization: Bearer <token>` header. Authentication reaches
+UserProfile Service only asynchronously, via Kafka — never a direct call.

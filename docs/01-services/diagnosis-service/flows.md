@@ -1,105 +1,97 @@
 # Key Flows
 
-## Browse / view a record — `GET /diagnosis`, `GET /diagnosis/{id}`
+## Browse / view a record
 
 ```mermaid
 sequenceDiagram
-    actor U as Guest or Registered User
-    participant FE as Frontend
-    participant GW as API Gateway
+    actor U as Caller (guest or authenticated)
     participant D as Diagnosis Service
     participant EXT as External Diagnosis API
 
-    U->>FE: opens diagnosis list / clicks a record
-    FE->>GW: GET /diagnosis (or /diagnosis/{id})
-    Note over GW: public route — no token needed
-    GW->>D: forward
-    D->>EXT: fetch live
+    U->>D: GET /diagnosis (or /diagnosis/{id})
+    D->>EXT: GET /diagnosis (fetches full dataset live)
     EXT-->>D: records
-    D-->>FE: 200 + data
-```
-
-Both routes are public — Guest and Registered Users alike (US-04). Basic filtering across the
-list the frontend already has is done client-side; not a backend concern.
-
-## Advanced search — `GET /diagnosis/search` (Protected)
-
-```mermaid
-sequenceDiagram
-    actor U as Registered User
-    participant FE as Frontend
-    participant GW as API Gateway
-    participant D as Diagnosis Service
-    participant EXT as External Diagnosis API
-
-    U->>FE: sets filters (pain type, age, bp, gender)
-    FE->>GW: GET /diagnosis/search?... (with JWT)
-    GW->>GW: validate JWT
-    GW->>D: forward
-    D->>EXT: fetch (filtered where the external API supports it)
-    EXT-->>D: matching records (or none)
-    D-->>FE: 200 + results (possibly empty)
-    FE->>U: results, or "no results" message
-```
-
-Registered-only (US-05, deliberately restricted from the original "Guest or Registered" spec —
-see [ADR-0009](../../00-infrastructure/adr/0009-route-level-authorization-at-gateway.md) for how
-the Gateway enforces this). An empty result set is a normal 200 response, not an error.
-
-## Treatment analysis — `GET /diagnosis/analysis` (Protected)
-
-```mermaid
-sequenceDiagram
-    actor U as Registered User
-    participant FE as Frontend
-    participant GW as API Gateway
-    participant D as Diagnosis Service
-    participant EXT as External Diagnosis API
-
-    U->>FE: selects a characteristic (age / gender / pain type)
-    FE->>GW: GET /diagnosis/analysis?by=... (with JWT)
-    GW->>GW: validate JWT
-    GW->>D: forward
-    D->>EXT: fetch entire dataset
-    EXT-->>D: all records
-    D->>D: aggregate treatment counts by characteristic
-    D-->>FE: 200 + breakdown
-```
-
-Registered-only per US-06. Always runs against the **full** dataset, not just current search
-results — a fresh fetch + aggregation on every call, no caching (see
-[`api-contract.md`](./api-contract.md)).
-
-## Bookmark validation — the direct call
-
-```mermaid
-sequenceDiagram
-    actor U as Registered User
-    participant FE as Frontend
-    participant GW as API Gateway
-    participant B as Bookmark Service
-    participant D as Diagnosis Service
-    participant EXT as External Diagnosis API
-
-    U->>FE: clicks "bookmark" on a record
-    FE->>GW: POST /bookmarks (with JWT)
-    GW->>B: forward
-    Note over B,D: direct call, not through the Gateway —<br/>routed via Eureka lookup like any service-to-service call
-    B->>D: GET /diagnosis/{id}
-    D->>EXT: fetch live
-    EXT-->>D: record, or not found
-
-    alt record exists
-        D-->>B: 200 + record data
-        B->>B: save bookmark
-        B-->>FE: 201 confirmed
-    else record not found
-        D-->>B: 404 RECORD_NOT_FOUND
-        B-->>FE: error — can't bookmark, record doesn't exist
+    alt X-User-Id present (detail route only)
+        D-->>U: 200, full record fields
+    else no header
+        D-->>U: 200, public-detail subset (no treatment)
     end
 ```
 
-This is the one real direct service-to-service call in this system (see
-[`messaging.md`](./messaging.md) for why it isn't Kafka). Bookmark Service's own side — how it
-stores the snapshot, what `POST /bookmarks` looks like — is documented in its own
-[`api-contract.md`](../bookmark-service/api-contract.md).
+`GET /diagnosis` (list) never requires a header. `GET /diagnosis/{id}` changes response shape
+depending on whether one is present.
+
+## Advanced search
+
+```mermaid
+sequenceDiagram
+    actor U as Caller
+    participant D as Diagnosis Service
+    participant EXT as External Diagnosis API
+
+    U->>D: GET /diagnosis/search?... (X-User-Id required)
+    alt no X-User-Id
+        D-->>U: 401
+    else header present
+        D->>D: validate filters (≥1 required, ranges sane)
+        alt invalid
+            D-->>U: 400
+        else valid
+            D->>EXT: fetch full dataset
+            D->>D: filter in-memory (case-insensitive gender/painType, inclusive ranges)
+            D-->>U: 200 + matches (possibly empty)
+        end
+    end
+```
+
+## Treatment analysis
+
+```mermaid
+sequenceDiagram
+    actor U as Caller
+    participant D as Diagnosis Service
+    participant EXT as External Diagnosis API
+
+    U->>D: GET /diagnosis/analysis?by=... (X-User-Id required)
+    D->>EXT: fetch full dataset
+    D->>D: group by age-decade / gender / painType, compute treatment counts + percentages
+    D-->>U: 200 + breakdown
+```
+
+Always the full dataset — current search filters never apply here.
+
+## Bookmark creation
+
+```mermaid
+sequenceDiagram
+    actor U as Caller
+    participant D as Diagnosis Service
+    participant EXT as External Diagnosis API
+    participant K as Kafka
+    participant B as Bookmark Service
+
+    U->>D: POST /diagnosis/{id}/bookmark (X-User-Id required)
+    alt no X-User-Id
+        D-->>U: 401
+    else header present
+        D->>EXT: resolve record by id
+        alt not found
+            D-->>U: 404
+        else found
+            D->>D: build snapshot (gender, age, bp, painType, treatment)
+            D->>K: publish bookmark.created (blocks for ack)
+            alt publish fails
+                D-->>U: 503
+            else ack received
+                D-->>U: 202 "Bookmark request submitted"
+                Note over K,B: consumed asynchronously — this route<br/>doesn't wait for Bookmark Service to save it
+                K->>B: deliver event
+                B->>B: save bookmark
+            end
+        end
+    end
+```
+
+Diagnosis Service never learns whether Bookmark Service's save actually succeeded — `202` only
+confirms the event reached Kafka. See [Bookmark Service's flows](../bookmark-service/flows.md)
+for what happens after.

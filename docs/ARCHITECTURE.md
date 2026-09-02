@@ -7,16 +7,20 @@ shown here.
 
 ## 1. Request flow — what happens when the client calls the backend
 
-The path a normal API call takes. This is the one to look at first.
+The path a normal API call takes, **once the Gateway exists**. The Gateway itself is not built
+yet ([`00-infrastructure/api-gateway/`](./00-infrastructure/api-gateway/README.md) is still a
+plan) — today, each service is called directly on its own port, and every service trusts
+`X-User-Id`/`X-User-Email` headers as plain, unverified headers rather than a Gateway-forwarded,
+JWT-verified identity. See the trust-model note in each service's own README.
 
 ```mermaid
 flowchart LR
     Client["React Frontend"]
-    Gateway["API Gateway<br/>routes · checks JWT · CORS"]
-    UserProfile["UserProfile Service"]
-    Auth["Authentication Service"]
-    Diagnosis["Diagnosis Service"]
-    Bookmark["Bookmark Service"]
+    Gateway["API Gateway (planned)<br/>routes · checks JWT · CORS"]
+    UserProfile["UserProfile Service :8080"]
+    Auth["Authentication Service :8081"]
+    Diagnosis["Diagnosis Service :8083"]
+    Bookmark["Bookmark Service :8082"]
 
     Client -- "REST call" --> Gateway
     Gateway --> UserProfile
@@ -25,52 +29,52 @@ flowchart LR
     Gateway --> Bookmark
 ```
 
-The client only ever talks to the Gateway — it never knows a service's real address.
+## 2. Service discovery — built and running
 
-## 2. Service discovery — how the Gateway finds a service
-
-Services don't have fixed addresses; they register themselves and the Gateway looks them up.
+Services don't have fixed addresses; they register themselves with Eureka on startup. There's no
+Gateway yet to consume the registry, but every service already registers.
 
 ```mermaid
 flowchart LR
-    Eureka(["Eureka<br/>Service Discovery"])
-    Gateway["API Gateway"]
-    UserProfile["UserProfile Service"]
+    Eureka(["Eureka Service<br/>:8761"])
     Auth["Authentication Service"]
+    UserProfile["UserProfile Service"]
     Diagnosis["Diagnosis Service"]
     Bookmark["Bookmark Service"]
 
-    UserProfile -. registers .-> Eureka
     Auth -. registers .-> Eureka
+    UserProfile -. registers .-> Eureka
     Diagnosis -. registers .-> Eureka
     Bookmark -. registers .-> Eureka
-    Gateway -. "looks up address" .-> Eureka
 ```
 
-Every service registers with Eureka on startup; the Gateway asks Eureka "where is X right now?"
-instead of using a hardcoded URL.
+See [`00-infrastructure/eureka-service/`](./00-infrastructure/eureka-service/README.md).
 
-## 3. Async messaging — the one event flow in the system
-
-Today there's exactly one thing that happens via an event instead of a direct call: handing off
-a new user's profile data after registration. The client registers directly against
-Authentication — Kafka only carries the one-way hand-off afterward.
+## 3. Async messaging — two event flows, both one-way
 
 ```mermaid
 flowchart LR
     Auth["Authentication Service<br/>owns registration"]
-    Kafka(["Kafka<br/>Message Bus"])
+    Kafka1(["Kafka: user.registered"])
     UserProfile["UserProfile Service<br/>consumer only"]
 
-    Auth -- "publishes user ID + profile data" --> Kafka
-    Kafka -- "delivers to" --> UserProfile
+    Auth -- "publishes userId + profile fields" --> Kafka1
+    Kafka1 -- "delivers to" --> UserProfile
+
+    Diagnosis["Diagnosis Service"]
+    Kafka2(["Kafka: bookmark.created"])
+    Bookmark["Bookmark Service<br/>consumer only"]
+
+    Diagnosis -- "publishes userId + diagnosis snapshot" --> Kafka2
+    Kafka2 -- "delivers to" --> Bookmark
 ```
 
-Authentication is publisher-only here, UserProfile is consumer-only — no round trip. See
+Both flows are strictly one-way, publisher-only on one side, consumer-only on the other — no
+service both publishes and consumes. See
 [ADR-0010](./00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md) for
-why (and for the earlier two-way design this replaced, kept on record in
-[ADR-0001](./00-infrastructure/adr/0001-async-registration-via-kafka.md) and
-[ADR-0004](./00-infrastructure/adr/0004-registration-race-handled-by-generic-login-error.md)).
+the registration flow's reasoning, and [Diagnosis Service's `messaging.md`](./01-services/diagnosis-service/messaging.md)
+for why the bookmark flow is Kafka-based rather than a direct synchronous call (an earlier design
+this replaced).
 
 ## 4. Data ownership — what each service persists, and where
 
@@ -78,66 +82,51 @@ Each service owns its own storage. No service reaches into another's database.
 
 ```mermaid
 flowchart LR
-    UserProfile["UserProfile Service"] --> UserProfileDB[("UserProfile DB<br/>MySQL")]
-    Auth["Authentication Service"] --> AuthDB[("Auth DB<br/>MySQL")]
-    Bookmark["Bookmark Service"] --> BookmarkDB[("Bookmark DB<br/>MySQL")]
+    UserProfile["UserProfile Service"] --> UserProfileDB[("profiles_db<br/>MySQL")]
+    Auth["Authentication Service"] --> AuthDB[("auth_db<br/>MySQL")]
+    Bookmark["Bookmark Service"] --> BookmarkDB[("bookmark_db<br/>MongoDB")]
     Bookmark -- "cache" --> Redis[("Redis")]
-    Diagnosis["Diagnosis Service"] -- "live fetch, no storage" --> ExternalAPI["External Diagnosis API<br/>(json-server, port 3232)"]
+    Diagnosis["Diagnosis Service"] -- "live fetch, no storage" --> ExternalAPI["External Diagnosis API<br/>(stackroutenew/diagnosisapi, port 3232)"]
 ```
 
 Diagnosis Service is the odd one out: it has no database of its own — see
-[ADR-0003](./00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md).
+[ADR-0003](./00-infrastructure/adr/0003-diagnosis-service-stateless-no-db.md). Bookmark Service
+is the other odd one out: it's MongoDB, not MySQL, plus Redis in front of it.
 
 ## What each piece is for
 
 | Component | Role |
 |---|---|
-| **React Frontend** | The only thing the end user sees. Built with Vite + React + TanStack Query/Router + MUI. Talks to the backend exclusively through the API Gateway — never calls a service directly. |
-| **API Gateway** | Single front door for every request, built with Spring Cloud Gateway. Validates the JWT on incoming calls, decides which routes even require one, applies CORS rules, and routes each request to the right service by asking Eureka where that service currently lives. |
-| **Eureka (Service Discovery)** | A directory of "who's alive and where." Every service registers itself on startup; the Gateway (and services that call each other) look up addresses here instead of hardcoding them. |
-| **Kafka (Message Bus)** | Carries events between services that shouldn't call each other directly. Today's only flow: Authentication publishes a new user's ID + profile data after registration, and UserProfile consumes it to create the profile record. |
-| **Redis (Cache)** | Speeds up reads for data that's requested often and changes rarely — currently a user's bookmark list, so the Bookmark Service doesn't hit its database on every page load. |
+| **React Frontend** | Not built yet. Will talk to the backend exclusively through the API Gateway once it exists. |
+| **API Gateway** | **Not built yet** — see [`00-infrastructure/api-gateway/`](./00-infrastructure/api-gateway/README.md), still a plan (Spring Cloud Gateway, JWT validation, route protection, forwards identity as headers). Until it exists, clients call each service directly on its own port. |
+| **Eureka Service** | **Built and running.** A directory of "who's alive and where." Every backend service registers itself on startup with a 30s heartbeat / 90s eviction. Nothing consumes the registry programmatically yet (that's the Gateway's job, once built) — see [`00-infrastructure/eureka-service/`](./00-infrastructure/eureka-service/README.md). |
+| **Kafka (Message Bus)** | Carries events between services that shouldn't call each other directly. Two flows today: (1) Authentication publishes `user.registered`, UserProfile consumes it. (2) Diagnosis Service publishes `bookmark.created`, Bookmark Service consumes it. Both one-way. |
+| **Redis (Cache)** | Speeds up reads for data that's requested often and changes rarely — currently a user's bookmark list, so Bookmark Service doesn't hit MongoDB on every page load. |
 | **UserProfile Service** | Owns a user's personal/profile data. Profile records are created asynchronously (via Kafka) after Authentication completes registration; handles profile updates directly thereafter. |
-| **Authentication Service** | Owns credentials, sessions, and registration itself. Handles registration, login/logout, password reset, and issues/validates JWTs. |
-| **Diagnosis Service** | Fetches and serves diagnosis records from the external Diagnosis API — it doesn't own its own database, it's a pass-through/aggregation layer over that external source. |
-| **Bookmark Service** | Owns which diagnosis records a user has saved. |
-| **External Diagnosis API** | Not part of this system — a separate data source (json-server) the Diagnosis Service calls out to. |
+| **Authentication Service** | Owns credentials and registration. Handles registration, login, refresh-token rotation, logout, and password change; issues JWT access tokens. |
+| **Diagnosis Service** | Fetches and serves diagnosis records from the real external Diagnosis API — no database of its own, a pass-through/aggregation layer. Also owns bookmark **creation** — it publishes the snapshot event Bookmark Service consumes. |
+| **Bookmark Service** | Owns which diagnosis records a user has saved. Creates bookmarks only by consuming Diagnosis Service's Kafka event; serves list/remove directly. |
+| **External Diagnosis API** | Not part of this system — the real `stackroutenew/diagnosisapi` Docker container, port `3232`, that Diagnosis Service calls out to. |
 
 ## How services talk to each other
 
-- **Client → backend**: always synchronous, always through the API Gateway. The frontend never
-  knows a service's real address — only the Gateway's.
-- **Service → service (direct)**: synchronous calls between services, when one needs an
-  immediate answer from another, are routed the same way — via the Gateway/Eureka lookup, not
-  hardcoded URLs.
-- **Service → service (event)**: asynchronous, via Kafka, for anything that doesn't need an
-  immediate response. Today that's just the profile-data hand-off from Authentication to
-  UserProfile after registration — full topic-by-topic detail lives in the Kafka doc once
-  written.
-- **Service → service (direct)**: real example in this system — Bookmark Service calling
-  `GET /diagnosis/{id}` on Diagnosis Service directly to confirm a record exists before saving a
-  bookmark (deliberately not Kafka — that interaction needs an immediate answer, and a Kafka
-  request/reply would have reintroduced the two-way publisher/consumer pattern ADR-0010 removed
-  elsewhere; see Diagnosis's [`messaging.md`](./01-services/diagnosis-service/messaging.md)).
-  Routed via Eureka lookup like any other service call, not a hardcoded URL. Only called at
-  bookmark-creation time — Bookmark stores a **snapshot** of the record, not just its ID, so
-  viewing/managing bookmarks never depends on Diagnosis Service being up (see
-  [ADR-0014](./00-infrastructure/adr/0014-bookmark-stores-snapshot-not-reference.md)).
-- **Service → cache**: only the Bookmark Service talks to Redis today.
-- **Service → external system**: only the Diagnosis Service talks outward, to the external
-  Diagnosis API.
+- **Client → backend**: today, direct calls to each service's own port (no Gateway yet). Once
+  the Gateway is built, this becomes always-through-the-Gateway, as planned.
+- **Service → service**: there is **no direct synchronous call between any two backend services**
+  in this system. The only cross-service connections are the two one-way Kafka flows above.
+- **Service → cache**: only Bookmark Service talks to Redis.
+- **Service → external system**: only Diagnosis Service talks outward, to the external Diagnosis
+  API.
 
 ## Data ownership
 
 Each service owns its own data — no service reaches into another service's database directly.
-If a service needs data it doesn't own, it asks for it (via the Gateway/Eureka, or via Kafka),
-never queries another service's DB.
 
 | Service | Owns | Storage |
 |---|---|---|
-| UserProfile Service | User profile/personal details | MySQL |
-| Authentication Service | Credentials, sessions, JWT state | MySQL |
-| Bookmark Service | Bookmarked records, cached in Redis | MySQL + Redis |
+| UserProfile Service | User profile/personal details | MySQL (`profiles_db`) |
+| Authentication Service | Credentials, refresh tokens | MySQL (`auth_db`) |
+| Bookmark Service | Bookmarked records (snapshots), cached in Redis | MongoDB (`bookmark_db`) + Redis |
 | Diagnosis Service | Nothing persisted — reads live from the external Diagnosis API | — |
 
 ## Key decisions
@@ -159,8 +148,9 @@ each:
   stack: Vite + React + TanStack Query/Router + MUI, no Next.js/SSR.
 - [ADR-0007](./00-infrastructure/adr/0007-backend-build-and-gateway-tooling.md) — backend build
   tool (Maven) and API Gateway implementation (Spring Cloud Gateway).
-- [ADR-0008](./00-infrastructure/adr/0008-mysql-as-database-engine.md) — MySQL as the database
-  engine for every service that owns data.
+- [ADR-0008](./00-infrastructure/adr/0008-mysql-as-database-engine.md) — MySQL as the default
+  database engine (Authentication, UserProfile); Bookmark Service deviated to MongoDB + Redis in
+  practice — see its own [`data-model.md`](./01-services/bookmark-service/data-model.md).
 - [ADR-0009](./00-infrastructure/adr/0009-route-level-authorization-at-gateway.md) — the Gateway
   also enforces which routes require auth at all, not just token validity.
 - [ADR-0010](./00-infrastructure/adr/0010-registration-owned-by-auth-single-direction-kafka.md) —
@@ -178,25 +168,31 @@ each:
   of keeping its own copy.
 - [ADR-0014](./00-infrastructure/adr/0014-bookmark-stores-snapshot-not-reference.md) — Bookmark
   Service stores a snapshot of a diagnosis record, not just its ID, so viewing bookmarks never
-  depends on Diagnosis Service being up.
+  depends on Diagnosis Service being up. In the as-built system this is moot for a different
+  reason too: there is no direct call between the two services at all — see the Async messaging
+  section above.
+- [ADR-0015](./00-infrastructure/adr/0015-spring-cloud-2025-1-3-for-boot-4-eureka.md) — every
+  service pins Spring Cloud `2025.1.3`, the first release train confirmed compatible with Spring
+  Boot 4.0.8, for the standard Eureka client/server starters.
 
-Bookmark Service's Redis cache is invalidated (not updated) on every add/remove, so the next read
-repopulates it, keyed per user, no TTL (every write path already invalidates it, so nothing
-goes stale without an event that clears it) — see Bookmark Service's
-[`flows.md`](./01-services/bookmark-service/flows.md).
+Bookmark Service's Redis cache is invalidated on every write (Kafka-consumed create, and
+`DELETE /bookmarks/{id}`) **and** carries a 5-minute TTL as a backstop — see Bookmark Service's
+[`config-env.md`](./01-services/bookmark-service/config-env.md).
 
 ## Where to go deeper
 
-- [`00-infrastructure/`](./00-infrastructure/README.md) — build/run notes for Eureka, API
-  Gateway, Kafka, and Redis individually.
+- [`00-infrastructure/`](./00-infrastructure/README.md) — build/run notes for Eureka (built), the
+  API Gateway (planned), Kafka, and Redis.
 - `01-services/` — one folder per backend service, each with its own responsibilities, data,
-  and key flows.
-- `02-frontend/` — the React app.
-- `04-deployment/` — the Docker Compose setup that brings all of this up with one command.
+  and key flows — this is the as-built source of truth today.
+- `02-frontend/` — not started.
+- `04-deployment/` — the root `docker-compose.yml` brings every built service up with one command
+  (`mysql`, `kafka`, `mongo`, `redis`, `eureka`, `diagnosis-api`, and all 4 backend services).
 
 ## Status
 
-✅ The system-wide shape above (service boundaries, sync vs. async communication, auth flow,
-data ownership) has been through architecture review — see **Key decisions**. Deeper,
-service-specific decisions (exact DB technology per service, Kafka topic/payload schemas, API
-contracts) are still open and will be grilled when each service's own doc is drafted.
+✅ Four backend services (Authentication, UserProfile, Diagnosis, Bookmark) and Eureka Service are
+built, containerized, and verified working together end-to-end via Docker Compose. 🚧 API
+Gateway and frontend are not built yet — the diagrams above mark what's planned vs. what's
+running. Docs in `01-services/` reflect the actual running code, not the original pre-build
+design (see each service's own doc for any place it deviates from an earlier plan).
