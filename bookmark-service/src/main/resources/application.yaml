@@ -30,3 +30,7 @@ bookmark:
     topic: bookmark.created
   cache:
     ttl-seconds: 300
+
+eureka:
+  url: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance-hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}

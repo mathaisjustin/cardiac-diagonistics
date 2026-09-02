@@ -42,3 +42,7 @@ kafka:
       delivery.timeout.ms: 10000
       request.timeout.ms: 5000
       max.block.ms: 10000
+
+eureka:
+  url: ${EUREKA_URL:http://localhost:8761/eureka}
+  instance-hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
