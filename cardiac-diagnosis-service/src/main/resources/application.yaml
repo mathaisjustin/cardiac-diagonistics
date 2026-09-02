@@ -11,6 +11,9 @@ spring:
 server:
   port: 8083
 
+jwt:
+  secret: ${JWT_SECRET}
+
 external:
   diagnosis-api-url: ${EXTERNAL_DIAGNOSIS_API_URL:http://localhost:3232}
 

@@ -148,6 +148,7 @@ services:
       DB_USER: root
       DB_PASSWORD: rootpassword
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      JWT_SECRET: ${JWT_SECRET:-dGVzdC1zZWNyZXQtZm9yLWxvY2FsLXRlc3Rpbmctb25seS1uZXZlci11c2UtaW4tcHJvZA==}
       EUREKA_URL: http://eureka:8761/eureka
       EUREKA_INSTANCE_HOSTNAME: cardiac-user-profile-service
     networks:
@@ -171,6 +172,7 @@ services:
     environment:
       EXTERNAL_DIAGNOSIS_API_URL: http://diagnosis-api:3232
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      JWT_SECRET: ${JWT_SECRET:-dGVzdC1zZWNyZXQtZm9yLWxvY2FsLXRlc3Rpbmctb25seS1uZXZlci11c2UtaW4tcHJvZA==}
       EUREKA_URL: http://eureka:8761/eureka
       EUREKA_INSTANCE_HOSTNAME: cardiac-diagnosis-service
     networks:
@@ -200,6 +202,7 @@ services:
       REDIS_PORT: 6379
       REDIS_PASSWORD: rootpassword
       KAFKA_BOOTSTRAP_SERVERS: kafka:19092
+      JWT_SECRET: ${JWT_SECRET:-dGVzdC1zZWNyZXQtZm9yLWxvY2FsLXRlc3Rpbmctb25seS1uZXZlci11c2UtaW4tcHJvZA==}
       EUREKA_URL: http://eureka:8761/eureka
       EUREKA_INSTANCE_HOSTNAME: cardiac-bookmark-service
     networks:
@@ -213,6 +216,32 @@ services:
         condition: service_healthy
       eureka:
         condition: service_healthy
+
+  api-gateway:
+    build:
+      context: ./cardiac-api-gateway
+      dockerfile: Dockerfile
+    container_name: cardiac-api-gateway
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    environment:
+      JWT_SECRET: ${JWT_SECRET:-dGVzdC1zZWNyZXQtZm9yLWxvY2FsLXRlc3Rpbmctb25seS1uZXZlci11c2UtaW4tcHJvZA==}
+      EUREKA_URL: http://eureka:8761/eureka
+      EUREKA_INSTANCE_HOSTNAME: cardiac-api-gateway
+    networks:
+      - cardiac-net
+    depends_on:
+      eureka:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+      user-profile-service:
+        condition: service_started
+      diagnosis-service:
+        condition: service_started
+      bookmark-service:
+        condition: service_started
 
 networks:
   cardiac-net:
