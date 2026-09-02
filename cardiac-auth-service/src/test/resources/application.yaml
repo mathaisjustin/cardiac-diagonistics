@@ -1,0 +1,33 @@
+spring:
+  application:
+    name: cardiac-auth-service
+
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+
+  datasource:
+    url: jdbc:h2:mem:auth_test_db;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+server:
+  port: 0
+
+jwt:
+  secret: test-only-secret-never-use-in-production-1234567890
+  access-token-expiration: 900000
+  refresh-token-expiration: 604800000
+
+kafka:
+  bootstrap-servers: localhost:9092
+
+eureka:
+  client:
+    enabled: false
