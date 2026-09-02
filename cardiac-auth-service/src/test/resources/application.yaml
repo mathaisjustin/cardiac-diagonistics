@@ -26,7 +26,9 @@ jwt:
   refresh-token-expiration: 604800000
 
 kafka:
-  bootstrap-servers: localhost:9092
+  # Deliberately unreachable - tests must never talk to a real Kafka broker (e.g. the one
+  # docker-compose runs on the real 9092 for local dev).
+  bootstrap-servers: localhost:19999
 
 eureka:
   client:
