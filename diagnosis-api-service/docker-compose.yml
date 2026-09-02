@@ -1,0 +1,13 @@
+services:
+  diagnosis-api:
+    image: stackroutenew/diagnosisapi
+    container_name: cardiac-diagnosis-api
+    restart: unless-stopped
+    ports:
+      - "3232:3232"
+    networks:
+      - cardiac-net
+
+networks:
+  cardiac-net:
+    name: cardiac-net
