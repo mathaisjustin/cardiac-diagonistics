@@ -1,0 +1,88 @@
+import type { RegistryRecord } from './registryTypes'
+
+export const mockRecords: RegistryRecord[] = [
+  {
+    id: 5,
+    gender: 'Male',
+    age: 54,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '158/96',
+  },
+  {
+    id: 31,
+    gender: 'Male',
+    age: 57,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '142/90',
+  },
+  {
+    id: 64,
+    gender: 'Male',
+    age: 52,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '128/84',
+  },
+  {
+    id: 98,
+    gender: 'Male',
+    age: 59,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '150/94',
+  },
+  {
+    id: 112,
+    gender: 'Male',
+    age: 55,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '136/88',
+  },
+  {
+    id: 140,
+    gender: 'Male',
+    age: 58,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '154/92',
+  },
+  {
+    id: 176,
+    gender: 'Female',
+    age: 48,
+    diagnosis: 'Atypical Angina',
+    bloodPressure: '132/86',
+  },
+  {
+    id: 203,
+    gender: 'Female',
+    age: 62,
+    diagnosis: 'Atypical Angina',
+    bloodPressure: '145/92',
+  },
+  {
+    id: 241,
+    gender: 'Male',
+    age: 45,
+    diagnosis: 'Non-anginal',
+    bloodPressure: '130/85',
+  },
+  {
+    id: 278,
+    gender: 'Female',
+    age: 39,
+    diagnosis: 'Asymptomatic',
+    bloodPressure: '122/80',
+  },
+  {
+    id: 315,
+    gender: 'Male',
+    age: 67,
+    diagnosis: 'Typical Angina',
+    bloodPressure: '158/96',
+  },
+  {
+    id: 342,
+    gender: 'Female',
+    age: 51,
+    diagnosis: 'Non-anginal',
+    bloodPressure: '134/88',
+  },
+]
