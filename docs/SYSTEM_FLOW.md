@@ -11,63 +11,53 @@ For per-service internals, see [`ARCHITECTURE.md`](./ARCHITECTURE.md) and
 
 ## 1. Everything that runs, and how it's wired
 
+Ports for every box below are in the [Docker Compose table](#7-docker-compose--ports-and-dependency-order)
+— left out here so the shapes stay readable.
+
 ```mermaid
 flowchart TB
-    subgraph Client
-        FE["Frontend<br/>React + Vite, served by nginx<br/>:5173 → container :80"]
-    end
+    FE(["Frontend"])
+    GW["API Gateway"]
 
-    subgraph Edge
-        GW["API Gateway<br/>:9090<br/>JWT verify · CORS · routing"]
-        EUR(["Eureka<br/>:8761<br/>service registry"])
-    end
+    FE ==>|"1 · every browser request"| GW
 
-    subgraph Services
-        AUTH["Auth Service<br/>:8081"]
-        PROF["User Profile Service<br/>:8080"]
-        DIAG["Diagnosis Service<br/>:8083"]
-        BOOK["Bookmark Service<br/>:8082"]
-    end
+    GW ==>|"2a"| AUTH["Auth Service"]
+    GW ==>|"2b"| PROF["Profile Service"]
+    GW ==>|"2c"| DIAG["Diagnosis Service"]
+    GW ==>|"2d"| BOOK["Bookmark Service"]
 
-    subgraph Data
-        MYSQL[("MySQL :3306<br/>auth + profile")]
-        MONGO[("MongoDB :27017<br/>bookmarks")]
-        REDIS[("Redis :6379<br/>bookmark cache")]
-        KAFKA{{"Kafka :9092"}}
-    end
+    AUTH ==>|"3a · read/write"| MYSQL[("MySQL")]
+    PROF ==>|"3b · read/write"| MYSQL
+    DIAG ==>|"3c · GET, every call"| EXT[("External<br/>Diagnosis API")]
+    BOOK ==>|"3d · read/write"| MONGO[("MongoDB")]
+    BOOK ==>|"3e · cache"| REDIS[("Redis")]
 
-    EXT[("External Diagnosis API<br/>:3232 — 3rd-party dataset")]
+    AUTH -.->|"4 · event: user.registered"| KAFKA{{"Kafka"}}
+    KAFKA -.->|"5 · consumed by"| PROF
 
-    FE -->|"HTTPS, browser-side"| GW
-    GW -->|"/api/auth/**  (public)"| AUTH
-    GW -->|"/api/profile/**  (auth required)"| PROF
-    GW -->|"/api/diagnosis/**  (auth optional)"| DIAG
-    GW -->|"/api/bookmarks/**  (auth required)"| BOOK
+    DIAG -.->|"6 · event: bookmark.created"| KAFKA
+    KAFKA -.->|"7 · consumed by"| BOOK
 
-    AUTH --- MYSQL
-    PROF --- MYSQL
-    BOOK --- MONGO
-    BOOK --- REDIS
-    DIAG -->|"REST GET"| EXT
+    AUTH -.- EUR(["Eureka<br/>service registry"])
+    PROF -.- EUR
+    DIAG -.- EUR
+    BOOK -.- EUR
+    GW -.- EUR
 
-    AUTH -.->|"registers"| EUR
-    PROF -.->|"registers"| EUR
-    DIAG -.->|"registers"| EUR
-    BOOK -.->|"registers"| EUR
-    GW -.->|"looks up instances"| EUR
-
-    AUTH -.->|"publishes<br/>user.registered"| KAFKA
-    KAFKA -.->|"consumes"| PROF
-    DIAG -.->|"publishes<br/>bookmark.created"| KAFKA
-    KAFKA -.->|"consumes"| BOOK
-
-    style KAFKA fill:#fff3cd,stroke:#b38600
-    style EUR fill:#e7f0ff,stroke:#3366cc
+    style KAFKA fill:#fff3cd,stroke:#b38600,color:#000
+    style EUR fill:#e7f0ff,stroke:#3366cc,color:#000
+    style FE fill:#f3f3f3,stroke:#888,color:#000
 ```
 
-**Legend**
-- **Solid arrow** — synchronous HTTP call, waits for a response.
-- **Dashed arrow** — asynchronous: Kafka event, or Eureka registration/lookup.
+**Reading it**
+- **Thick arrows, numbered `1`→`3`** — the synchronous request path: browser → Gateway → one of
+  the four services → that service's own datastore. This is the flow for a normal page load.
+- **Dashed arrows, numbered `4`→`7`** — the two Kafka events, traced in full in
+  [§3](#3-registration--profile-creation-the-one-place-kafka-drives-a-write) and
+  [§6](#6-bookmarking--the-other-kafka-event-end-to-end) below.
+- **Faint lines to Eureka** — every service registers itself there; the Gateway asks it "where is
+  this service right now?" instead of using a fixed address. Not part of the request/response
+  path, just how the Gateway finds everyone.
 - The browser only ever talks to the **Gateway** (`:9090`) and the **frontend** (`:5173`). It
   never calls a backend service directly.
 
