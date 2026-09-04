@@ -1,5 +1,7 @@
 package com.elsevier.cardiac_user_profile_service.dto;
 
+import java.time.LocalDateTime;
+
 public class ProfileResponseDto {
 
     private String email;
@@ -7,6 +9,7 @@ public class ProfileResponseDto {
     private String lastName;
     private String contact;
     private String department;
+    private LocalDateTime createdAt;
 
 
     public ProfileResponseDto() {
@@ -55,5 +58,14 @@ public class ProfileResponseDto {
 
     public void setDepartment(String department) {
         this.department = department;
+    }
+
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
     }
 }

@@ -1,6 +1,15 @@
 import { Link } from 'react-router-dom'
 
+import { useCurrentUser } from '../../hooks/useCurrentUser'
+
 const AuthenticatedNavbar = () => {
+  const { firstName, lastName } = useCurrentUser()
+
+  const initials =
+    firstName && lastName
+      ? `${firstName[0]}${lastName[0]}`.toUpperCase()
+      : '…'
+
   return (
     <nav className="w-full border-b border-gray-300 bg-[#f3f1f1]">
       <div className="flex h-[88px] items-center justify-between px-10">
@@ -37,7 +46,7 @@ const AuthenticatedNavbar = () => {
             to="/profile"
             className="flex h-[48px] w-[48px] items-center justify-center bg-[#ed3217] text-sm font-extrabold text-white transition-colors hover:bg-[#d92d15]"
           >
-            JD
+            {initials}
           </Link>
         </div>
       </div>

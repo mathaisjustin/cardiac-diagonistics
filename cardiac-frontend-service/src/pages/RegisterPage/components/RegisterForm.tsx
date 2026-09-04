@@ -1,19 +1,55 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import AuthButton from '../../../components/Auth/AuthButton'
 import AuthInput from '../../../components/Auth/AuthInput'
+import { useAppDispatch, useAppSelector } from '../../../app/hooks'
+import { registerStatusReset, registerUser } from '../../../features/auth/authSlice'
+
+const initialFormState = {
+  firstName: '',
+  lastName: '',
+  email: '',
+  contactNumber: '',
+  department: '',
+  password: '',
+}
 
 const RegisterForm = () => {
   const navigate = useNavigate()
+  const dispatch = useAppDispatch()
+  const { registerStatus, registerError } = useAppSelector((state) => state.auth)
+
+  const [form, setForm] = useState(initialFormState)
+
+  const handleChange =
+    (field: keyof typeof initialFormState) =>
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setForm((prev) => ({ ...prev, [field]: event.target.value }))
+    }
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+
+    const result = await dispatch(registerUser(form))
+
+    if (registerUser.fulfilled.match(result)) {
+      dispatch(registerStatusReset())
+      navigate('/login')
+    }
+  }
 
   return (
-    <form className="grid grid-cols-2 gap-x-8 gap-y-7">
+    <form className="grid grid-cols-2 gap-x-8 gap-y-7" onSubmit={handleSubmit}>
       {/* First Name */}
       <AuthInput
         label="First Name"
         name="firstName"
         type="text"
         placeholder="Jane"
+        value={form.firstName}
+        onChange={handleChange('firstName')}
+        required
       />
 
       {/* Last Name */}
@@ -22,6 +58,9 @@ const RegisterForm = () => {
         name="lastName"
         type="text"
         placeholder="Required"
+        value={form.lastName}
+        onChange={handleChange('lastName')}
+        required
       />
 
       {/* Email */}
@@ -30,14 +69,20 @@ const RegisterForm = () => {
         name="email"
         type="email"
         placeholder="jane@example.com"
+        value={form.email}
+        onChange={handleChange('email')}
+        required
       />
 
       {/* Phone */}
       <AuthInput
         label="Phone"
-        name="phone"
+        name="contactNumber"
         type="tel"
         placeholder="555-0100"
+        value={form.contactNumber}
+        onChange={handleChange('contactNumber')}
+        required
       />
 
       {/* Department */}
@@ -46,6 +91,9 @@ const RegisterForm = () => {
         name="department"
         type="text"
         placeholder="Cardiology"
+        value={form.department}
+        onChange={handleChange('department')}
+        required
       />
 
       {/* Password */}
@@ -55,6 +103,9 @@ const RegisterForm = () => {
           name="password"
           type="password"
           placeholder="••••••••••"
+          value={form.password}
+          onChange={handleChange('password')}
+          required
         />
 
         <p className="mt-2 text-sm text-gray-500">
@@ -70,11 +121,15 @@ const RegisterForm = () => {
         </div>
       </div>
 
+      {registerError && (
+        <div className="col-span-2 text-sm text-[#ed3217]">{registerError}</div>
+      )}
+
       {/* Buttons */}
       <div className="col-span-2 flex items-center gap-3">
         <div className="w-52">
-          <AuthButton>
-            Create account
+          <AuthButton disabled={registerStatus === 'loading'}>
+            {registerStatus === 'loading' ? 'Creating…' : 'Create account'}
           </AuthButton>
         </div>
 

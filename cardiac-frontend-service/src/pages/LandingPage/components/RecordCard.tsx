@@ -1,25 +1,24 @@
+import { motion } from 'framer-motion'
+
 interface RecordCardProps {
-  id: string
+  index: number
   gender: string
   age: number
   diagnosis: string
-  bloodPressure: string
-  treatment: 'Medication' | 'Surgery'
 }
 
-const RecordCard = ({
-  id,
-  gender,
-  age,
-  diagnosis,
-  bloodPressure,
-  treatment,
-}: RecordCardProps) => {
+const RecordCard = ({ index, gender, age, diagnosis }: RecordCardProps) => {
   return (
-    <article className="border border-gray-500 bg-[#faf8f8] p-6">
+    <motion.article
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay: 0.08 * index }}
+      whileHover={{ y: -4 }}
+      className="border border-gray-500 bg-[#faf8f8] p-6 transition-shadow hover:shadow-lg"
+    >
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold tracking-[0.15em] text-gray-500">
-          {id}
+          {String(index).padStart(3, '0')}
         </span>
 
         <span className="text-xl text-gray-400">☆</span>
@@ -32,31 +31,7 @@ const RecordCard = ({
       <p className="mt-1 text-base text-gray-600">
         {diagnosis}
       </p>
-
-      <div className="my-5 border-t border-gray-300" />
-
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium uppercase tracking-wide text-gray-500">
-          BP
-        </span>
-
-        <span className="text-sm text-gray-900">
-          {bloodPressure}
-        </span>
-      </div>
-
-      <div className="mt-5">
-        <span
-          className={`inline-block border px-3 py-1 text-sm font-bold ${
-            treatment === 'Surgery'
-              ? 'border-[#ed3217] bg-[#ed3217] text-white'
-              : 'border-gray-500 bg-transparent text-gray-900'
-          }`}
-        >
-          {treatment}
-        </span>
-      </div>
-    </article>
+    </motion.article>
   )
 }
 

@@ -9,7 +9,7 @@ const GuestRegistryNavbar = () => {
           to="/"
           className="text-2xl font-extrabold tracking-wide text-gray-900"
         >
-          REGISTRY
+          DIGNOSIS.REGISTRY
         </Link>
 
         {/* Navigation */}

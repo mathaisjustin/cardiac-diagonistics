@@ -1,19 +1,16 @@
 export interface RegistryRecord {
-  id: number
-  gender: 'Male' | 'Female'
+  id: string
+  gender: string
   age: number
-  diagnosis:
-    | 'Typical Angina'
-    | 'Atypical Angina'
-    | 'Non-anginal'
-    | 'Asymptomatic'
-  bloodPressure: string
+  diagnosis: string
+  bloodPressure?: string
 }
 
 export interface RegistryFilters {
-  painTypes: RegistryRecord['diagnosis'][]
+  painType: string | null
   minAge: number
   maxAge: number
-  bloodPressure: string
+  bpMin: number
+  bpMax: number
   gender: 'Male' | 'Female' | 'Any'
 }

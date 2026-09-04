@@ -1,33 +1,11 @@
 import RecordCard from './RecordCard'
+import type { DiagnosisSample } from '../../../api/diagnosisApi'
 
-const RecordPreview = () => {
-  const records = [
-    {
-      id: '001',
-      gender: 'Male',
-      age: 45,
-      diagnosis: 'Typical Angina',
-      bloodPressure: '130/85',
-      treatment: 'Medication' as const,
-    },
-    {
-      id: '002',
-      gender: 'Female',
-      age: 62,
-      diagnosis: 'Atypical Angina',
-      bloodPressure: '145/92',
-      treatment: 'Surgery' as const,
-    },
-    {
-      id: '003',
-      gender: 'Male',
-      age: 54,
-      diagnosis: 'Non-anginal',
-      bloodPressure: '118/76',
-      treatment: 'Medication' as const,
-    },
-  ]
+interface RecordPreviewProps {
+  sample?: DiagnosisSample[]
+}
 
+const RecordPreview = ({ sample }: RecordPreviewProps) => {
   return (
     <section className="bg-[#f5f3f3] px-10 py-10">
       <div className="mb-6 flex items-center justify-between">
@@ -36,7 +14,7 @@ const RecordPreview = () => {
         </h2>
 
         <a
-          href="#records"
+          href="/registry"
           className="text-sm font-bold text-[#ed3217] hover:underline"
         >
           See all records →
@@ -44,10 +22,13 @@ const RecordPreview = () => {
       </div>
 
       <div className="grid grid-cols-3 gap-5">
-        {records.map((record) => (
+        {sample?.map((record, index) => (
           <RecordCard
-            key={record.id}
-            {...record}
+            key={`${record.gender}-${record.age}-${index}`}
+            index={index + 1}
+            gender={record.gender}
+            age={record.age}
+            diagnosis={record.pain_type}
           />
         ))}
       </div>
