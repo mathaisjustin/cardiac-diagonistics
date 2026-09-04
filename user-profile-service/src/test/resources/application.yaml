@@ -1,0 +1,30 @@
+spring:
+  application:
+    name: cardiac-user-profile-service
+
+  datasource:
+    url: jdbc:h2:mem:profile_test_db;MODE=MySQL;DB_CLOSE_DELAY=-1
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+
+  # Deliberately unreachable - tests must never talk to a real Kafka broker (e.g. the one
+  # docker-compose runs on the real 9092 for local dev), or a context test can end up
+  # consuming live messages under the same consumer group as the running service.
+  kafka:
+    bootstrap-servers: localhost:19999
+
+server:
+  port: 0
+
+jwt:
+  secret: test-only-secret-never-use-in-production-1234567890
+
+eureka:
+  client:
+    enabled: false

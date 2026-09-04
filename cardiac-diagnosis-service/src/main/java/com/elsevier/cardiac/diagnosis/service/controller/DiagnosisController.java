@@ -5,6 +5,7 @@ import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResult;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisListItem;
 import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisPublicDetail;
+import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisStats;
 import com.elsevier.cardiac.diagnosis.service.exception.UnauthorizedException;
 import com.elsevier.cardiac.diagnosis.service.exception.ValidationException;
 import com.elsevier.cardiac.diagnosis.service.service.DiagnosisService;
@@ -48,6 +49,14 @@ public class DiagnosisController {
                 .stream()
                 .map(DiagnosisListItem::new)
                 .collect(Collectors.toList());
+    }
+
+    // GET /diagnosis/stats
+    // Public - landing page summary. Total records, mean age, surgery share,
+    // and a fresh random 3-record sample (gender/age/painType only) each call.
+    @GetMapping("/stats")
+    public DiagnosisStats stats() {
+        return diagnosisService.getPublicStats();
     }
 
     // GET /diagnosis/search?gender=Male&painType=Typical%20Angina&ageMin=40&ageMax=60&bpMin=120&bpMax=150

@@ -41,6 +41,7 @@ public class ProfileServiceImpl implements ProfileService {
         responseDto.setLastName(profile.getLastName());
         responseDto.setContact(profile.getContact());
         responseDto.setDepartment(profile.getDepartment());
+        responseDto.setCreatedAt(profile.getCreatedAt());
 
 
         return responseDto;
@@ -79,6 +80,7 @@ public class ProfileServiceImpl implements ProfileService {
         responseDto.setLastName(updatedProfile.getLastName());
         responseDto.setContact(updatedProfile.getContact());
         responseDto.setDepartment(updatedProfile.getDepartment());
+        responseDto.setCreatedAt(updatedProfile.getCreatedAt());
 
 
         return responseDto;

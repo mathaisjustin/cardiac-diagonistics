@@ -243,6 +243,20 @@ services:
       bookmark-service:
         condition: service_started
 
+  frontend:
+    build:
+      context: ./cardiac-frontend-service
+      dockerfile: Dockerfile
+    container_name: cardiac-frontend-service
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    networks:
+      - cardiac-net
+    depends_on:
+      api-gateway:
+        condition: service_started
+
 networks:
   cardiac-net:
     name: cardiac-net

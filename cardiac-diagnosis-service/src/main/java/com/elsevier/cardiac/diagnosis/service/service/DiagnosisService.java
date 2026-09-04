@@ -5,6 +5,8 @@ import com.elsevier.cardiac.diagnosis.service.dto.AdvancedSearchRequest;
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisGroup;
 import com.elsevier.cardiac.diagnosis.service.dto.AnalysisResult;
 import com.elsevier.cardiac.diagnosis.service.dto.Diagnosis;
+import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisSample;
+import com.elsevier.cardiac.diagnosis.service.dto.DiagnosisStats;
 import com.elsevier.cardiac.diagnosis.service.event.BookmarkEvent;
 import com.elsevier.cardiac.diagnosis.service.event.DiagnosisPayload;
 import com.elsevier.cardiac.diagnosis.service.exception.DiagnosisNotFoundException;
@@ -18,6 +20,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.stream.Collectors;
 
 @Service
@@ -155,6 +158,38 @@ public class DiagnosisService {
         return new AnalysisResult(
                 characteristic, all.size(), overallCounts, overallPercentages, breakdown
         );
+    }
+
+    // Public landing-page summary: total count, mean age, surgery share, and a
+    // fresh random 3-record sample (gender/age/painType only) on every call.
+    private static final String SURGERY_TREATMENT = "Coronary Artery Bypass Graft (CABG)";
+
+    public DiagnosisStats getPublicStats() {
+
+        List<Diagnosis> all = getAllDiagnoses();
+        int total = all.size();
+
+        double meanAge = total == 0
+                ? 0.0
+                : Math.round(all.stream().mapToInt(Diagnosis::getAge).average().orElse(0.0) * 10.0) / 10.0;
+
+        long surgeryCount = all.stream()
+                .filter(diagnosis -> SURGERY_TREATMENT.equalsIgnoreCase(diagnosis.getTreatment()))
+                .count();
+
+        double surgeryShare = total == 0
+                ? 0.0
+                : Math.round(surgeryCount * 1000.0 / total) / 10.0;
+
+        List<Diagnosis> shuffled = new ArrayList<>(all);
+        java.util.Collections.shuffle(shuffled, ThreadLocalRandom.current());
+
+        List<DiagnosisSample> sample = shuffled.stream()
+                .limit(3)
+                .map(DiagnosisSample::new)
+                .collect(Collectors.toList());
+
+        return new DiagnosisStats(total, meanAge, surgeryShare, sample);
     }
 
     private String groupKey(Diagnosis diagnosis, String characteristic) {

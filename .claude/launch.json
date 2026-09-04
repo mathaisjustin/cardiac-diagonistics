@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "cardiac-frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["--prefix", "cardiac-frontend-service", "run", "dev", "--", "--host"],
+      "port": 5173
+    }
+  ]
+}
