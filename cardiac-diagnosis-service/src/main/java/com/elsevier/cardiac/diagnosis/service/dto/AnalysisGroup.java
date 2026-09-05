@@ -1,7 +1,10 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.Map;
 
+@Schema(description = "Treatment counts/percentages for one group value (e.g. one age bucket).")
 public class AnalysisGroup {
 
     private String value;

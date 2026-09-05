@@ -1,8 +1,11 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 import java.util.Map;
 
+@Schema(description = "Treatment breakdown across the full dataset, grouped by the requested characteristic.")
 public class AnalysisResult {
 
     private String characteristic;

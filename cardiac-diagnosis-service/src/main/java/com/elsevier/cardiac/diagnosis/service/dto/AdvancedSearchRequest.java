@@ -1,5 +1,8 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
+@Schema(description = "Internal filter set built from /diagnosis/search query parameters.")
 public class AdvancedSearchRequest {
 
     private String gender;
