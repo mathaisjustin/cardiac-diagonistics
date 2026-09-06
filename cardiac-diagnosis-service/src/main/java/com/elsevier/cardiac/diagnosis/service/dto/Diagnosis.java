@@ -1,7 +1,10 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "Full cardiac diagnosis record, including the recommended treatment. "
+        + "Only returned to authenticated callers.")
 public class Diagnosis {
 
     private String gender;

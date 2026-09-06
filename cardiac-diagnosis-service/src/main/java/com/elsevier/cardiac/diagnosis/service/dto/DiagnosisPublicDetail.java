@@ -1,7 +1,10 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
+@Schema(description = "Full clinical detail of a diagnosis record minus the recommended "
+        + "treatment - shown to anonymous (non-authenticated) callers.")
 public class DiagnosisPublicDetail {
 
     private String id;

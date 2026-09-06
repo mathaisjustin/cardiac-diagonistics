@@ -1,8 +1,10 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 // Public landing-page preview - intentionally exposes nothing beyond gender/age/pain_type.
+@Schema(description = "Minimal preview of a record - gender, age, and pain type only.")
 public class DiagnosisSample {
 
     private String gender;

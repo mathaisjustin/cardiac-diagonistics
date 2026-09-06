@@ -1,8 +1,11 @@
 package com.elsevier.cardiac.diagnosis.service.dto;
 
 import java.util.List;
+import io.swagger.v3.oas.annotations.media.Schema;
 
 // Public landing-page summary - aggregate figures plus a small random sample.
+@Schema(description = "Aggregate summary of the full dataset plus a random sample, for "
+        + "anonymous/landing-page display.")
 public class DiagnosisStats {
 
     private int totalRecords;
