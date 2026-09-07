@@ -2,6 +2,19 @@ FROM node:20-alpine AS build
 
 WORKDIR /build
 
+# Optional corporate/proxy root CA. If you're building behind a
+# TLS-intercepting network (common on managed/corporate machines) you'll
+# hit "UNABLE_TO_GET_ISSUER_CERT_LOCALLY" talking to registry.npmjs.org -
+# export your org's root CA (Base-64 X.509 .pem/.crt) and save it as
+# corporate-ca.pem right here in cardiac-frontend-service/ (gitignored,
+# never commit it - it's specific to your machine/network). The wildcard
+# COPY below is a no-op if that file doesn't exist, so this is harmless
+# for anyone not behind such a proxy.
+COPY corporate-ca.pem* ./
+RUN if [ -f corporate-ca.pem ]; then \
+      npm config set cafile "$(pwd)/corporate-ca.pem" --global; \
+    fi
+
 # node:20-alpine's bundled npm has a known internal crash bug ("Exit handler
 # never called!" - see npm/cli#4028 and related issues) that can kill an
 # install partway through with no useful error. Upgrading npm first avoids
