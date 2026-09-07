@@ -22,8 +22,8 @@ public class Diagnosis {
     private String treatment;
     private String id;
 
-    // Required by Jackson for deserialization.
     public Diagnosis() {
+        // Required by Jackson for deserialization.
     }
 
     public String getGender() {

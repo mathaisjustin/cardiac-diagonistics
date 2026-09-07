@@ -9,8 +9,8 @@ public class DiagnosisPayload {
     private String treatment;
 
 
-    // Required by Jackson for deserialization.
     public DiagnosisPayload() {
+        // Required by Jackson for deserialization.
     }
 
 

@@ -10,8 +10,8 @@ public class UserProfileEvent {
     private String department;
 
 
-    // Required by Jackson for deserialization.
     public UserProfileEvent() {
+        // Required by Jackson for deserialization.
     }
 
 

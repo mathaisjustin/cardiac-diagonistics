@@ -1,6 +1,7 @@
 package com.elsevier.cardiac_bookmark_service.config;
 
 import com.elsevier.cardiac_bookmark_service.exception.InvalidBookmarkEventException;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -22,14 +23,7 @@ public class KafkaConsumerConfig {
     public DefaultErrorHandler kafkaErrorHandler() {
 
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-                (consumerRecord, exception) -> log.error(
-                        "Giving up on Kafka record from topic '{}' partition {} offset {}: {}",
-                        consumerRecord.topic(),
-                        consumerRecord.partition(),
-                        consumerRecord.offset(),
-                        exception.getMessage(),
-                        exception
-                ),
+                this::logGivingUp,
                 new FixedBackOff(1000L, 2)
         );
 
@@ -37,5 +31,16 @@ public class KafkaConsumerConfig {
         errorHandler.addNotRetryableExceptions(InvalidBookmarkEventException.class);
 
         return errorHandler;
+    }
+
+    void logGivingUp(ConsumerRecord<?, ?> consumerRecord, Exception exception) {
+        log.error(
+                "Giving up on Kafka record from topic '{}' partition {} offset {}: {}",
+                consumerRecord.topic(),
+                consumerRecord.partition(),
+                consumerRecord.offset(),
+                exception.getMessage(),
+                exception
+        );
     }
 }

@@ -13,8 +13,8 @@ public class BookmarkEvent {
     private DiagnosisPayload payload;
 
 
-    // Required by Jackson for deserialization.
     public BookmarkEvent() {
+        // Required by Jackson for deserialization.
     }
 
 

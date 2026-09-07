@@ -27,8 +27,8 @@ public class Bookmark {
     private LocalDateTime createdAt;
 
 
-    // Required by Spring Data MongoDB for document instantiation.
     public Bookmark() {
+        // Required by Spring Data MongoDB for document instantiation.
     }
 
 

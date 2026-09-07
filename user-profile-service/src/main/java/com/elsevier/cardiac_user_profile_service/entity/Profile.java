@@ -64,8 +64,8 @@ public class Profile {
     }
 
 
-    // Required by JPA for entity instantiation.
     public Profile() {
+        // Required by JPA for entity instantiation.
     }
 
 

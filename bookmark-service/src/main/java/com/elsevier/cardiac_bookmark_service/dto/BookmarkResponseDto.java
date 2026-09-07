@@ -25,8 +25,8 @@ public class BookmarkResponseDto implements Serializable {
     private LocalDateTime createdAt;
 
 
-    // Required by Jackson for deserialization.
     public BookmarkResponseDto() {
+        // Required by Jackson for deserialization.
     }
 
 
