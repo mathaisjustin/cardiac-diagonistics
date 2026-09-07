@@ -2,6 +2,12 @@ FROM node:20-alpine AS build
 
 WORKDIR /build
 
+# node:20-alpine's bundled npm has a known internal crash bug ("Exit handler
+# never called!" - see npm/cli#4028 and related issues) that can kill an
+# install partway through with no useful error. Upgrading npm first avoids
+# it entirely.
+RUN npm install -g npm@latest
+
 COPY package.json package-lock.json ./
 # --include=dev guarantees devDependencies (typescript, vite - both required
 # just to run "npm run build") install regardless of NODE_ENV=production or
