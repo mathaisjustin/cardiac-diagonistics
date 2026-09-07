@@ -8,10 +8,15 @@ RUN mvn -B dependency:go-offline
 COPY src ./src
 RUN mvn -B clean package -DskipTests
 
-FROM eclipse-temurin:17-jre
+FROM maven:3.9-eclipse-temurin-17
 
 WORKDIR /app
 
+# Includes the full JDK + Maven (not just a JRE) plus the source/pom, so you
+# can `docker exec` into the running container and run `mvn test`/`verify`/
+# `sonar:sonar` directly - no Java or Maven install needed on the host.
+COPY --from=build /build/pom.xml ./pom.xml
+COPY --from=build /build/src ./src
 COPY --from=build /build/target/cardiac-api-gateway.jar app.jar
 
 EXPOSE 9090
