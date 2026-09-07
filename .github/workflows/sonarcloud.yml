@@ -8,16 +8,10 @@ on:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.service }})
+    name: Build, test, and analyze
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service:
-          - cardiac-auth-service
-          - user-profile-service
-          - cardiac-diagnosis-service
-          - bookmark-service
+    env:
+      SERVICES: cardiac-auth-service user-profile-service cardiac-diagnosis-service bookmark-service
     steps:
       - uses: actions/checkout@v4
         with:
@@ -26,28 +20,39 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          # The services build and run on Java 17, but the sonar-maven-plugin itself
-          # requires Java 21+ to execute - this is only the JVM running the scanner/Maven
-          # process, not a change to the services' own compiler/runtime target.
+          # The services build and run on Java 17, but the sonar-scanner itself requires
+          # Java 21+ to execute - this is only the JVM running the scanner/Maven process,
+          # not a change to the services' own compiler/runtime target.
           java-version: '21'
-
-      - name: Cache SonarCloud packages
-        uses: actions/cache@v4
-        with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
 
       - name: Cache Maven packages
         uses: actions/cache@v4
         with:
           path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ matrix.service }}-${{ hashFiles(format('{0}/pom.xml', matrix.service)) }}
-          restore-keys: ${{ runner.os }}-m2-${{ matrix.service }}-
+          key: ${{ runner.os }}-m2-${{ hashFiles('*/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2-
 
-      - name: Build, test, and analyze
-        working-directory: ${{ matrix.service }}
+      # Each service is a standalone Maven project (no root aggregator pom), so build/test
+      # them one at a time to produce each one's target/classes and JaCoCo XML report -
+      # sonar-scanner (not sonar-maven-plugin, since there's no single reactor build to hang
+      # a "sonar:sonar" goal off of) then reads all 4 services' sources/binaries/reports in
+      # one pass below, reporting to a single SonarCloud project instead of one per service.
+      - name: Build and test each service
+        run: |
+          for service in $SERVICES; do
+            (cd "$service" && ./mvnw -B clean verify)
+          done
+        shell: bash
+
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarqube-scan-action@v4
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: mvn -B verify sonar:sonar
+        with:
+          args: >
+            -Dsonar.organization=mathaisjustin
+            -Dsonar.projectKey=mathaisjustin_cardiac-diagonistics
+            -Dsonar.sources=cardiac-auth-service/src/main,user-profile-service/src/main,cardiac-diagnosis-service/src/main,bookmark-service/src/main
+            -Dsonar.tests=cardiac-auth-service/src/test,user-profile-service/src/test,cardiac-diagnosis-service/src/test,bookmark-service/src/test
+            -Dsonar.java.binaries=cardiac-auth-service/target/classes,user-profile-service/target/classes,cardiac-diagnosis-service/target/classes,bookmark-service/target/classes
+            -Dsonar.coverage.jacoco.xmlReportPaths=cardiac-auth-service/target/site/jacoco/jacoco.xml,user-profile-service/target/site/jacoco/jacoco.xml,cardiac-diagnosis-service/target/site/jacoco/jacoco.xml,bookmark-service/target/site/jacoco/jacoco.xml
