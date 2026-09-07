@@ -137,6 +137,30 @@ class DiagnosisServiceTest {
     }
 
     @Test
+    void advancedSearch_noMatches_returnsEmptyList() {
+        Diagnosis[] records = {
+                diagnosis("1", "Male", 45, 130, "Typical Angina", "Medication")
+        };
+        when(diagnosisApiClient.getAllDiagnoses()).thenReturn(records);
+
+        AdvancedSearchRequest request = new AdvancedSearchRequest();
+        request.setGender("Female");
+
+        List<Diagnosis> result = diagnosisService.advancedSearch(request);
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void analyzeByCharacteristic_unsupportedCharacteristic_throws() {
+        Diagnosis[] records = {diagnosis("1", "Male", 45, 130, "Typical Angina", "Medication")};
+        when(diagnosisApiClient.getAllDiagnoses()).thenReturn(records);
+
+        assertThatThrownBy(() -> diagnosisService.analyzeByCharacteristic("bloodType"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void analyzeByCharacteristic_groupsByGenderAndComputesDominantTreatment() {
         Diagnosis[] records = {
                 diagnosis("1", "Male", 45, 130, "Typical Angina", "Medication"),

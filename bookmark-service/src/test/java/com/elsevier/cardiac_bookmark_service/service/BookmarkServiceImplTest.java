@@ -76,6 +76,17 @@ class BookmarkServiceImplTest {
     }
 
     @Test
+    void getBookmarks_cacheMissAndNoBookmarksInRepository_returnsEmptyListAndCachesIt() {
+        when(bookmarkCacheService.get("user-1")).thenReturn(null);
+        when(bookmarkRepository.findByUserId("user-1")).thenReturn(List.of());
+
+        List<BookmarkResponseDto> result = bookmarkService.getBookmarks("user-1");
+
+        assertThat(result).isEmpty();
+        verify(bookmarkCacheService).put(eq("user-1"), eq(List.of()));
+    }
+
+    @Test
     void deleteBookmark_found_deletesAndEvictsCache() {
         Bookmark bookmark = bookmark("b1", "user-1", "1");
         when(bookmarkRepository.findByIdAndUserId("b1", "user-1"))
