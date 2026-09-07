@@ -40,7 +40,7 @@ jobs:
       - name: Build and test each service
         run: |
           for service in $SERVICES; do
-            (cd "$service" && ./mvnw -B clean verify)
+            (cd "$service" && mvn -B clean verify)
           done
         shell: bash
 
