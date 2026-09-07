@@ -2,6 +2,7 @@ package com.elsevier.cardiac_bookmark_service.repository;
 
 import com.elsevier.cardiac_bookmark_service.document.Bookmark;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.mongodb.test.autoconfigure.DataMongoTest;
@@ -40,6 +41,15 @@ class BookmarkRepositoryIT {
 
     @Autowired
     private BookmarkRepository bookmarkRepository;
+
+    // Tests share one Testcontainers-backed Mongo instance for the whole class, so without
+    // this, bookmarks inserted by one test (e.g. the "user-1"/"diag-1" pair several tests
+    // reuse) leak into the next and break assertions that expect an exact count or a single
+    // unique match.
+    @BeforeEach
+    void clearCollection() {
+        bookmarkRepository.deleteAll();
+    }
 
     @Test
     void save_persistsBookmark() {

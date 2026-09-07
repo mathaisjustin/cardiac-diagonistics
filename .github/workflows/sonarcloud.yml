@@ -26,7 +26,10 @@ jobs:
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          # The services build and run on Java 17, but the sonar-maven-plugin itself
+          # requires Java 21+ to execute - this is only the JVM running the scanner/Maven
+          # process, not a change to the services' own compiler/runtime target.
+          java-version: '21'
 
       - name: Cache SonarCloud packages
         uses: actions/cache@v4

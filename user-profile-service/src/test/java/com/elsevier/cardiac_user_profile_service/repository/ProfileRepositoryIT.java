@@ -75,12 +75,15 @@ class ProfileRepositoryIT {
 
     @Test
     void update_bumpsUpdatedAtTimestamp() throws InterruptedException {
-        Profile saved = profileRepository.save(newProfile("user-3"));
+        Profile saved = profileRepository.saveAndFlush(newProfile("user-3"));
         var firstUpdatedAt = saved.getUpdatedAt();
 
         Thread.sleep(10);
         saved.setDepartment("Neurology");
-        Profile updated = profileRepository.save(saved);
+        // saveAndFlush (not save) - plain save() only schedules the update for the next
+        // flush, so @PreUpdate wouldn't have run yet and updatedAt would still read back
+        // as the original, unchanged value.
+        Profile updated = profileRepository.saveAndFlush(saved);
 
         assertThat(updated.getUpdatedAt()).isAfter(firstUpdatedAt);
     }
