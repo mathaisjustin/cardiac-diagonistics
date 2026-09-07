@@ -29,6 +29,13 @@ import java.util.List;
  * A relative URL is resolved by Swagger UI against the page's own origin
  * (the Gateway), so "Try it out" calls route back through the Gateway.
  *
+ * It's "/api" rather than "/api/profile" because ProfileController is
+ * already @RequestMapping("/profile") - that's already baked into every
+ * documented operation, and the Gateway strips exactly one segment
+ * ("/api") off /api/profile/** before forwarding here. A server prefix of
+ * "/api/profile" would double up with the operation path (e.g.
+ * /api/profile/profile).
+ *
  * Note: this service itself expects identity via X-User-Id/X-User-Email/
  * X-Identity-Signature (set by the Gateway, not a raw JWT) - the Authorize
  * button here documents the JWT you'd present to the Gateway, which is
@@ -59,7 +66,7 @@ public class OpenApiConfig {
                         )
                         .version("v1")
                         .contact(new Contact().name("Cardiac Diagnostics Team")))
-                .servers(List.of(new Server().url("/api/profile")))
+                .servers(List.of(new Server().url("/api")))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)

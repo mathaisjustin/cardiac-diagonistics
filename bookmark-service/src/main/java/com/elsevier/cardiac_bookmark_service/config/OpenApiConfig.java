@@ -29,6 +29,13 @@ import java.util.List;
  * A relative URL is resolved by Swagger UI against the page's own origin
  * (the Gateway), so "Try it out" calls route back through the Gateway.
  *
+ * It's "/api" rather than "/api/bookmarks" because BookmarkController is
+ * already @RequestMapping("/bookmarks") - that's already baked into every
+ * documented operation, and the Gateway strips exactly one segment
+ * ("/api") off /api/bookmarks/** before forwarding here. A server prefix
+ * of "/api/bookmarks" would double up with the operation path (e.g.
+ * /api/bookmarks/bookmarks/{id}).
+ *
  * Docs are served at:
  *   /v3/api-docs        - raw OpenAPI JSON
  *   /swagger-ui/index.html - interactive Swagger UI
@@ -55,7 +62,7 @@ public class OpenApiConfig {
                         )
                         .version("v1")
                         .contact(new Contact().name("Cardiac Diagnostics Team")))
-                .servers(List.of(new Server().url("/api/bookmarks")))
+                .servers(List.of(new Server().url("/api")))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)

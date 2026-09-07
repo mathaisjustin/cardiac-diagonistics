@@ -33,6 +33,13 @@ import java.util.List;
  * A relative URL is resolved by Swagger UI against the page's own origin
  * (the Gateway), so "Try it out" calls route back through the Gateway.
  *
+ * It's empty ("") rather than "/api/auth" because AuthController is
+ * already @RequestMapping("/api/auth") - that full path is already baked
+ * into every documented operation, and the Gateway's auth route forwards
+ * /api/auth/** unchanged (no prefix stripping, unlike the other 3
+ * services). A non-empty server prefix here would double up with the
+ * operation path (e.g. /api/auth/api/auth/register).
+ *
  * Docs are served at:
  *   /v3/api-docs        - raw OpenAPI JSON
  *   /swagger-ui/index.html - interactive Swagger UI
@@ -55,7 +62,7 @@ public class OpenApiConfig {
                         )
                         .version("v1")
                         .contact(new Contact().name("Cardiac Diagnostics Team")))
-                .servers(List.of(new Server().url("/api/auth")))
+                .servers(List.of(new Server().url("")))
                 .components(new Components()
                         .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
                                 .type(SecurityScheme.Type.HTTP)
