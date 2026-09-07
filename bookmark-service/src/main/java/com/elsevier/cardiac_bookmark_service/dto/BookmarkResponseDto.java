@@ -1,17 +1,27 @@
 package com.elsevier.cardiac_bookmark_service.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
 public class BookmarkResponseDto implements Serializable {
 
+    @Schema(description = "Bookmark id")
     private String id;
+    @Schema(description = "Id of the bookmarked diagnosis record", example = "1")
     private String diagnosisId;
+    @Schema(description = "Gender from the diagnosis record", example = "Male")
     private String gender;
+    @Schema(description = "Age from the diagnosis record", example = "54")
     private Integer age;
+    @Schema(description = "Blood pressure from the diagnosis record", example = "130")
     private String bp;
+    @Schema(description = "Pain type from the diagnosis record", example = "Typical Angina")
     private String painType;
+    @Schema(description = "Treatment from the diagnosis record")
     private String treatment;
+    @Schema(description = "When the bookmark was saved")
     private LocalDateTime createdAt;
 
 

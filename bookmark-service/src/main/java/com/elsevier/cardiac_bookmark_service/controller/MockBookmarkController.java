@@ -2,6 +2,7 @@ package com.elsevier.cardiac_bookmark_service.controller;
 
 import com.elsevier.cardiac_bookmark_service.event.BookmarkEvent;
 import com.elsevier.cardiac_bookmark_service.producer.MockBookmarkProducer;
+import io.swagger.v3.oas.annotations.Hidden;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -11,10 +12,11 @@ import org.springframework.web.bind.annotation.RestController;
 /**
  * Test-only endpoint for publishing a sample {@code bookmark.created} Kafka event, so the
  * consumer can be exercised before the real producer (Diagnosis Service / frontend flow)
- * exists. Not part of the documented public API.
+ * exists. Not part of the documented public API - excluded from the generated Swagger docs.
  */
 @RestController
 @RequestMapping("/internal/mock")
+@Hidden
 public class MockBookmarkController {
 
     private final MockBookmarkProducer mockBookmarkProducer;

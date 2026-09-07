@@ -9,6 +9,7 @@ import org.springframework.web.servlet.function.RouterFunction;
 import org.springframework.web.servlet.function.ServerRequest;
 import org.springframework.web.servlet.function.ServerResponse;
 
+import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.rewritePath;
 import static org.springframework.cloud.gateway.server.mvc.filter.BeforeFilterFunctions.stripPrefix;
 import static org.springframework.cloud.gateway.server.mvc.filter.LoadBalancerFilterFunctions.lb;
 import static org.springframework.cloud.gateway.server.mvc.handler.GatewayRouterFunctions.route;
@@ -70,7 +71,49 @@ public class GatewayRoutesConfig {
         return authRoute
                 .and(profileRoute)
                 .and(diagnosisRoute)
-                .and(bookmarkRoute);
+                .and(bookmarkRoute)
+                .and(docsRoutes());
+    }
+
+    /**
+     * Passthrough routes that proxy each downstream service's /v3/api-docs to this gateway's
+     * own /api-docs/* paths, wired into springdoc.swagger-ui.urls (application.yaml) so the
+     * gateway's own /swagger-ui/index.html shows all 4 downstream services' real endpoints in
+     * one place. Deliberately bypass the profile/bookmark identity filters above - these are
+     * public API descriptions, not business data, so requiring a JWT just to view the docs
+     * would break Swagger UI's own unauthenticated doc-fetch calls.
+     */
+    private RouterFunction<ServerResponse> docsRoutes() {
+
+        RouterFunction<ServerResponse> authDocs =
+                route("auth-service-docs")
+                        .route(path("/api-docs/auth"), http())
+                        .before(rewritePath("/api-docs/auth", "/v3/api-docs"))
+                        .filter(lb(AUTH_SERVICE_ID))
+                        .build();
+
+        RouterFunction<ServerResponse> profileDocs =
+                route("user-profile-service-docs")
+                        .route(path("/api-docs/profile"), http())
+                        .before(rewritePath("/api-docs/profile", "/v3/api-docs"))
+                        .filter(lb(PROFILE_SERVICE_ID))
+                        .build();
+
+        RouterFunction<ServerResponse> diagnosisDocs =
+                route("diagnosis-service-docs")
+                        .route(path("/api-docs/diagnosis"), http())
+                        .before(rewritePath("/api-docs/diagnosis", "/v3/api-docs"))
+                        .filter(lb(DIAGNOSIS_SERVICE_ID))
+                        .build();
+
+        RouterFunction<ServerResponse> bookmarkDocs =
+                route("bookmark-service-docs")
+                        .route(path("/api-docs/bookmark"), http())
+                        .before(rewritePath("/api-docs/bookmark", "/v3/api-docs"))
+                        .filter(lb(BOOKMARK_SERVICE_ID))
+                        .build();
+
+        return authDocs.and(profileDocs).and(diagnosisDocs).and(bookmarkDocs);
     }
 
     private HandlerFilterFunction<ServerResponse, ServerResponse>
