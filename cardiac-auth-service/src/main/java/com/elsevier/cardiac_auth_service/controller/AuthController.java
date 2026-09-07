@@ -5,10 +5,12 @@ import com.elsevier.cardiac_auth_service.dto.*;
 import com.elsevier.cardiac_auth_service.security.RefreshTokenService;
 import com.elsevier.cardiac_auth_service.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -116,6 +118,7 @@ public class AuthController {
                     + "access token (the caller's identity is taken from the current "
                     + "Authentication)."
     )
+    @SecurityRequirement(name = "bearerAuth")
     @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Password changed successfully"),
             @ApiResponse(responseCode = "401", description = "Not authenticated, or old password incorrect",
@@ -124,7 +127,7 @@ public class AuthController {
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(
             @RequestBody ChangePasswordRequest request,
-            Authentication authentication
+            @Parameter(hidden = true) Authentication authentication
     ) {
         String userId = (String) authentication.getPrincipal();
 

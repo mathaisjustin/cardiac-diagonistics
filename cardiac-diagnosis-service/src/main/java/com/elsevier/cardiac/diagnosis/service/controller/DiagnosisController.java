@@ -16,6 +16,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.HttpStatus;
@@ -112,6 +113,7 @@ public class DiagnosisController {
             @ApiResponse(responseCode = "401", description = "X-User-Id header missing - login required",
                     content = @Content)
     })
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/search")
     public List<Diagnosis> search(
             @Parameter(hidden = true)
@@ -186,6 +188,7 @@ public class DiagnosisController {
             @ApiResponse(responseCode = "401", description = "X-User-Id header missing - login required",
                     content = @Content)
     })
+    @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/analysis")
     public AnalysisResult analyze(
             @Parameter(hidden = true)
@@ -223,6 +226,7 @@ public class DiagnosisController {
             @ApiResponse(responseCode = "404", description = "No diagnosis record with the given id",
                     content = @Content)
     })
+    @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{id}/bookmark")
     @ResponseStatus(HttpStatus.ACCEPTED)
     public Map<String, String> bookmark(

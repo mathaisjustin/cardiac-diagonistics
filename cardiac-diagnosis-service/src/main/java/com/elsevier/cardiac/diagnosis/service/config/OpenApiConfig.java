@@ -1,17 +1,36 @@
 package com.elsevier.cardiac.diagnosis.service.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import java.util.List;
 
 /**
  * Swagger/OpenAPI metadata only - no routes, filters, or business behavior are
  * touched here. springdoc-openapi auto-generates the spec and UI from the
  * existing @RestController/@GetMapping/etc. annotations already on
  * DiagnosisController; this bean just supplies the descriptive header
- * (title/version/description) shown at the top of that generated document.
+ * (title/version/description), a fixed gateway-relative server URL, and a
+ * shared JWT Authorize scheme (same "bearerAuth" name used by every
+ * service's docs, so the Authorize flow looks and works identically across
+ * tabs in the aggregated Swagger UI).
+ *
+ * The explicit server URL below is required: without it, springdoc infers
+ * the server address from whatever request context it sees, which - since
+ * the Gateway fetches this doc server-side over the Docker network - ends
+ * up being this container's internal IP (unreachable from your browser).
+ * A relative URL is resolved by Swagger UI against the page's own origin
+ * (the Gateway), so "Try it out" calls route back through the Gateway.
+ *
+ * Note: most of this service's routes are public or best-effort identity
+ * (see per-endpoint descriptions) - the Authorize button is offered for the
+ * routes that do require it (/search, /analysis, /{id}/bookmark).
  *
  * Docs are served at:
  *   /v3/api-docs        - raw OpenAPI JSON
@@ -19,6 +38,8 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class OpenApiConfig {
+
+    private static final String BEARER_SCHEME = "bearerAuth";
 
     @Bean
     public OpenAPI diagnosisServiceOpenApi() {
@@ -36,6 +57,15 @@ public class OpenApiConfig {
                                         + "equivalent to an anonymous/guest request."
                         )
                         .version("v1")
-                        .contact(new Contact().name("Cardiac Diagnostics Team")));
+                        .contact(new Contact().name("Cardiac Diagnostics Team")))
+                .servers(List.of(new Server().url("/api/diagnosis")))
+                .components(new Components()
+                        .addSecuritySchemes(BEARER_SCHEME, new SecurityScheme()
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")
+                                .description("Paste the accessToken returned by Auth Service's "
+                                        + "/login here - the Gateway verifies it and forwards your "
+                                        + "identity to this service.")));
     }
 }
