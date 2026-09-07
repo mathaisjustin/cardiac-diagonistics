@@ -24,16 +24,9 @@ management:
     health:
       show-details: always
 
-# Swagger UI dropdown aggregating each downstream service's OpenAPI doc, proxied through
-# this gateway's own /api-docs/* passthrough routes (see GatewayRoutesConfig.docsRoutes()).
+# Single merged Swagger UI page (no "Select a definition" dropdown) - all 4 downstream
+# services' endpoints combined into one document by AggregatedApiDocsController, grouped
+# visually by each service's own @Tag. See AggregatedApiDocsController's class Javadoc.
 springdoc:
   swagger-ui:
-    urls:
-      - name: Auth Service
-        url: /api-docs/auth
-      - name: User Profile Service
-        url: /api-docs/profile
-      - name: Diagnosis Service
-        url: /api-docs/diagnosis
-      - name: Bookmark Service
-        url: /api-docs/bookmark
+    url: /api-docs/unified
