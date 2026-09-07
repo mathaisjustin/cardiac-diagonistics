@@ -36,6 +36,17 @@
 			<artifactId>spring-cloud-starter-gateway-server-webmvc</artifactId>
 		</dependency>
 
+		<!-- Full Spring MVC auto-configuration - spring-cloud-starter-gateway-server-webmvc
+		     alone provides just enough servlet/MVC plumbing to run RouterFunction-based
+		     routing, but not the static resource handler auto-configuration springdoc
+		     needs to actually serve Swagger UI's HTML/JS (without this, /swagger-ui/**
+		     404s with NoResourceFoundException even though /v3/api-docs itself works
+		     fine, since that's just JSON from a bean, not a static resource). -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webmvc</artifactId>
+		</dependency>
+
 		<!-- Eureka client - registers this gateway in the service registry, and resolves
 		     lb:// route URIs to a live registered instance -->
 		<dependency>
