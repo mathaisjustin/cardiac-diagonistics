@@ -14,6 +14,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Merges all 4 downstream services' OpenAPI documents (fetched from the Gateway's own
@@ -48,6 +49,9 @@ public class AggregatedApiDocsController {
 
     private record ServiceSpec(String docsPath, String pathPrefix, String schemaPrefix) {
     }
+
+    private static final Set<String> HTTP_METHODS =
+            Set.of("get", "post", "put", "delete", "patch", "options", "head", "trace");
 
     private static final ServiceSpec[] SERVICES = {
             new ServiceSpec("/api-docs/auth", "", "Auth"),
@@ -127,11 +131,16 @@ public class AggregatedApiDocsController {
                     mergedSecuritySchemes.set(entry.getKey(), entry.getValue()));
         }
 
+        JsonNode globalSecurity = root.get("security");
         JsonNode pathsNode = root.get("paths");
         if (pathsNode != null && pathsNode.isObject()) {
             pathsNode.fields().forEachRemaining(entry -> {
                 String rewrittenPath = service.pathPrefix() + entry.getKey();
-                mergedPaths.set(rewrittenPath, rewriteSchemaRefs(entry.getValue(), renameMap));
+                JsonNode rewritten = rewriteSchemaRefs(entry.getValue(), renameMap);
+                if (rewritten.isObject()) {
+                    applyDefaultSecurity((ObjectNode) rewritten, globalSecurity);
+                }
+                mergedPaths.set(rewrittenPath, rewritten);
             });
         }
 
@@ -141,6 +150,29 @@ public class AggregatedApiDocsController {
                 mergedSchemas.set(prefixedName, rewriteSchemaRefs(entry.getValue(), renameMap));
             });
         }
+    }
+
+    /**
+     * Applies a service's global default `security` requirement to every operation in this
+     * path item that doesn't declare its own. A service-level `security` field (as set by
+     * each service's OpenApiConfig via addSecurityItem) implicitly covers every operation
+     * that omits its own `security`, but this merge only ever copied `paths` and
+     * `components` - the global default itself was silently dropped, so any endpoint
+     * relying on it lost its auth requirement in the unified spec and Swagger UI stopped
+     * attaching the bearer token for it.
+     */
+    private void applyDefaultSecurity(ObjectNode pathItem, JsonNode globalSecurity) {
+        if (globalSecurity == null || !globalSecurity.isArray() || globalSecurity.isEmpty()) {
+            return;
+        }
+        pathItem.fields().forEachRemaining(entry -> {
+            if (HTTP_METHODS.contains(entry.getKey()) && entry.getValue().isObject()) {
+                ObjectNode operation = (ObjectNode) entry.getValue();
+                if (!operation.has("security")) {
+                    operation.set("security", globalSecurity.deepCopy());
+                }
+            }
+        });
     }
 
     /** Recursively rewrites every "$ref": "#/components/schemas/X" to X's renamed key. */
