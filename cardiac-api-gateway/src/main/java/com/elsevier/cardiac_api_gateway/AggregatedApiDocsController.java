@@ -63,7 +63,7 @@ public class AggregatedApiDocsController {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @GetMapping(value = "/api-docs/unified", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<JsonNode> unifiedApiDocs() {
+    public ResponseEntity<String> unifiedApiDocs() throws com.fasterxml.jackson.core.JsonProcessingException {
 
         ObjectNode merged = objectMapper.createObjectNode();
         merged.put("openapi", "3.1.0");
@@ -87,7 +87,12 @@ public class AggregatedApiDocsController {
             mergeService(service, paths, schemas, securitySchemes);
         }
 
-        return ResponseEntity.ok(merged);
+        // Serialize with our own ObjectMapper rather than returning the JsonNode directly -
+        // Spring's auto Jackson message converter in this Spring Boot 4 setup doesn't
+        // tree-serialize com.fasterxml.jackson.databind.JsonNode correctly (it falls back
+        // to reflecting over JsonNode's own isXxx() getters, producing garbage like
+        // {"array":false,"bigDecimal":false,...} instead of the actual document).
+        return ResponseEntity.ok(objectMapper.writeValueAsString(merged));
     }
 
     private void mergeService(
