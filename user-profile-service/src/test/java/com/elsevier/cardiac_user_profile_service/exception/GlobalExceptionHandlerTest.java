@@ -100,6 +100,7 @@ class GlobalExceptionHandlerTest {
 
     private static class SampleController {
         public void sample(String userId) {
+            // Only used as a MethodParameter source for MissingRequestHeaderException in tests.
         }
     }
 }

@@ -15,8 +15,8 @@ class GlobalExceptionHandlerTest {
     void handleDiagnosisNotFound_returns404Body() {
         Map<String, Object> body = handler.handleDiagnosisNotFound(new DiagnosisNotFoundException("42"));
 
-        assertThat(body.get("status")).isEqualTo(404);
-        assertThat(body.get("message")).isEqualTo("Diagnosis not found with id: 42");
+        assertThat(body).containsEntry("status", 404)
+                .containsEntry("message", "Diagnosis not found with id: 42");
         assertThat(body.get("timestamp")).isNotNull();
     }
 
@@ -25,16 +25,16 @@ class GlobalExceptionHandlerTest {
         Map<String, Object> body =
                 handler.handleExternalApiException(new ExternalApiException("upstream down"));
 
-        assertThat(body.get("status")).isEqualTo(503);
-        assertThat(body.get("message")).isEqualTo("upstream down");
+        assertThat(body).containsEntry("status", 503)
+                .containsEntry("message", "upstream down");
     }
 
     @Test
     void handleValidationException_returns400Body() {
         Map<String, Object> body = handler.handleValidationException(new ValidationException("bad filter"));
 
-        assertThat(body.get("status")).isEqualTo(400);
-        assertThat(body.get("message")).isEqualTo("bad filter");
+        assertThat(body).containsEntry("status", 400)
+                .containsEntry("message", "bad filter");
     }
 
     @Test
@@ -44,7 +44,7 @@ class GlobalExceptionHandlerTest {
 
         Map<String, Object> body = handler.handleTypeMismatch(exception);
 
-        assertThat(body.get("status")).isEqualTo(400);
+        assertThat(body).containsEntry("status", 400);
         assertThat((String) body.get("message")).contains("age");
     }
 
@@ -53,8 +53,8 @@ class GlobalExceptionHandlerTest {
         Map<String, Object> body =
                 handler.handleUnauthorizedException(new UnauthorizedException("login required"));
 
-        assertThat(body.get("status")).isEqualTo(401);
-        assertThat(body.get("message")).isEqualTo("login required");
+        assertThat(body).containsEntry("status", 401)
+                .containsEntry("message", "login required");
     }
 
     @Test
@@ -62,15 +62,15 @@ class GlobalExceptionHandlerTest {
         Map<String, Object> body = handler.handleKafkaPublishException(
                 new KafkaPublishException("boom", new RuntimeException("cause")));
 
-        assertThat(body.get("status")).isEqualTo(503);
-        assertThat(body.get("message")).isEqualTo("Bookmarking is temporarily unavailable, please try again");
+        assertThat(body).containsEntry("status", 503)
+                .containsEntry("message", "Bookmarking is temporarily unavailable, please try again");
     }
 
     @Test
     void handleGeneralException_returns500FixedBody() {
         Map<String, Object> body = handler.handleGeneralException(new RuntimeException("unexpected"));
 
-        assertThat(body.get("status")).isEqualTo(500);
-        assertThat(body.get("message")).isEqualTo("An unexpected error occurred");
+        assertThat(body).containsEntry("status", 500)
+                .containsEntry("message", "An unexpected error occurred");
     }
 }

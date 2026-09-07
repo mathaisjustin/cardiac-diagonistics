@@ -20,10 +20,10 @@ class KafkaConsumerConfigTest {
 
     @Test
     void logGivingUp_doesNotThrowForAFailedRecord() {
-        ConsumerRecord<String, String> record =
+        ConsumerRecord<String, String> consumerRecord =
                 new ConsumerRecord<>("bookmark.created", 0, 5L, "key", "value");
 
-        assertThatCode(() -> config.logGivingUp(record, new RuntimeException("boom")))
+        assertThatCode(() -> config.logGivingUp(consumerRecord, new RuntimeException("boom")))
                 .doesNotThrowAnyException();
     }
 }
