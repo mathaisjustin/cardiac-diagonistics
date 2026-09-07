@@ -18,8 +18,9 @@ RUN if [ -f corporate-ca.pem ]; then \
 # node:20-alpine's bundled npm has a known internal crash bug ("Exit handler
 # never called!" - see npm/cli#4028 and related issues) that can kill an
 # install partway through with no useful error. Upgrading npm first avoids
-# it entirely.
-RUN npm install -g npm@latest
+# it entirely - pinned to the 10.x line (not "latest"/npm@12, which requires
+# Node >=22 and fails with EBADENGINE against this image's Node 20).
+RUN npm install -g npm@10
 
 COPY package.json package-lock.json ./
 # --include=dev guarantees devDependencies (typescript, vite - both required
