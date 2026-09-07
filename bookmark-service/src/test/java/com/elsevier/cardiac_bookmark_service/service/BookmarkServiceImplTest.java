@@ -40,7 +40,7 @@ class BookmarkServiceImplTest {
         bookmarkService = new BookmarkServiceImpl(bookmarkRepository, bookmarkCacheService);
     }
 
-    private Bookmark bookmark(String id, String userId, String diagnosisId) {
+    private Bookmark bookmark(String userId, String diagnosisId) {
         Bookmark bookmark = Bookmark.newBookmark(userId, diagnosisId);
         bookmark.setGender("Male");
         bookmark.setAge(45);
@@ -65,7 +65,7 @@ class BookmarkServiceImplTest {
     void getBookmarks_cacheMiss_loadsFromRepositoryAndPopulatesCache() {
         when(bookmarkCacheService.get("user-1")).thenReturn(null);
         when(bookmarkRepository.findByUserId("user-1"))
-                .thenReturn(List.of(bookmark("b1", "user-1", "1")));
+                .thenReturn(List.of(bookmark("user-1", "1")));
 
         List<BookmarkResponseDto> result = bookmarkService.getBookmarks("user-1");
 
@@ -83,12 +83,12 @@ class BookmarkServiceImplTest {
         List<BookmarkResponseDto> result = bookmarkService.getBookmarks("user-1");
 
         assertThat(result).isEmpty();
-        verify(bookmarkCacheService).put(eq("user-1"), eq(List.of()));
+        verify(bookmarkCacheService).put("user-1", List.of());
     }
 
     @Test
     void deleteBookmark_found_deletesAndEvictsCache() {
-        Bookmark bookmark = bookmark("b1", "user-1", "1");
+        Bookmark bookmark = bookmark("user-1", "1");
         when(bookmarkRepository.findByIdAndUserId("b1", "user-1"))
                 .thenReturn(Optional.of(bookmark));
 

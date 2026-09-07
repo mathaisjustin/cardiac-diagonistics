@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 
 @Service
 public class AuthService {
@@ -45,7 +46,7 @@ public class AuthService {
         user.setPasswordHash(hashedPassword);
 
         // date and time
-        LocalDateTime now =  LocalDateTime.now();
+        LocalDateTime now =  LocalDateTime.now(ZoneOffset.UTC);
 
         user.setCreatedAt(now);
         user.setUpdatedAt(now);

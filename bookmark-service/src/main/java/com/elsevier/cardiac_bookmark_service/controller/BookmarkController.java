@@ -8,7 +8,6 @@ import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -62,11 +61,9 @@ public class BookmarkController {
             description = "Removes a bookmark by id, scoped to the caller identified by the "
                     + "X-User-Id header forwarded by the Gateway."
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Bookmark deleted"),
+            @ApiResponse(responseCode = "200", description = "Bookmark deleted")
             @ApiResponse(responseCode = "404", description = "No bookmark with the given id for this user",
                     content = @Content)
-    })
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBookmark(
             @Parameter(hidden = true)

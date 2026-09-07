@@ -5,6 +5,8 @@ import com.elsevier.cardiac_auth_service.exception.KafkaPublishException;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.concurrent.ExecutionException;
+
 @Service
 public class UserRegistrationProducer {
 
@@ -21,13 +23,19 @@ public class UserRegistrationProducer {
         try {
             kafkaTemplate.send(
                     TOPIC,
-                    event.userId().toString(),
+                    event.userId(),
                     event
             ).get();
 
-        } catch (Exception e) {
+        } catch (ExecutionException e) {
             throw new KafkaPublishException(
                     "Failed to publish user registration event",
+                    e
+            );
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new KafkaPublishException(
+                    "Interrupted while publishing user registration event",
                     e
             );
         }

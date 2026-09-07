@@ -1,6 +1,7 @@
 package com.elsevier.cardiac.diagnosis.service.exception;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -15,6 +16,9 @@ import org.springframework.web.method.annotation.MethodArgumentTypeMismatchExcep
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String STATUS_KEY = "status";
+    private static final String MESSAGE_KEY = "message";
+    private static final String TIMESTAMP_KEY = "timestamp";
 
     @ExceptionHandler(DiagnosisNotFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
@@ -22,9 +26,9 @@ public class GlobalExceptionHandler {
             DiagnosisNotFoundException exception) {
 
         return Map.of(
-                "status", 404,
-                "message", exception.getMessage(),
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 404,
+                MESSAGE_KEY, exception.getMessage(),
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -36,9 +40,9 @@ public class GlobalExceptionHandler {
         log.error("External diagnosis API call failed: {}", exception.getMessage(), exception);
 
         return Map.of(
-                "status", 503,
-                "message", exception.getMessage(),
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 503,
+                MESSAGE_KEY, exception.getMessage(),
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -48,9 +52,9 @@ public class GlobalExceptionHandler {
             ValidationException exception) {
 
         return Map.of(
-                "status", 400,
-                "message", exception.getMessage(),
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 400,
+                MESSAGE_KEY, exception.getMessage(),
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -60,9 +64,9 @@ public class GlobalExceptionHandler {
             MethodArgumentTypeMismatchException exception) {
 
         return Map.of(
-                "status", 400,
-                "message", "Invalid value for parameter: " + exception.getName(),
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 400,
+                MESSAGE_KEY, "Invalid value for parameter: " + exception.getName(),
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -72,9 +76,9 @@ public class GlobalExceptionHandler {
             UnauthorizedException exception) {
 
         return Map.of(
-                "status", 401,
-                "message", exception.getMessage(),
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 401,
+                MESSAGE_KEY, exception.getMessage(),
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -86,9 +90,9 @@ public class GlobalExceptionHandler {
         log.error("Kafka publish failed: {}", exception.getMessage(), exception);
 
         return Map.of(
-                "status", 503,
-                "message", "Bookmarking is temporarily unavailable, please try again",
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 503,
+                MESSAGE_KEY, "Bookmarking is temporarily unavailable, please try again",
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 
@@ -100,9 +104,9 @@ public class GlobalExceptionHandler {
         log.error("Unhandled exception: {}", exception.getMessage(), exception);
 
         return Map.of(
-                "status", 500,
-                "message", "An unexpected error occurred",
-                "timestamp", LocalDateTime.now()
+                STATUS_KEY, 500,
+                MESSAGE_KEY, "An unexpected error occurred",
+                TIMESTAMP_KEY, LocalDateTime.now(ZoneOffset.UTC)
         );
     }
 }

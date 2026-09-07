@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 
 import tools.jackson.databind.ObjectMapper;
 
+import java.util.concurrent.ExecutionException;
+
 @Service
 public class BookmarkProducer {
 
@@ -38,8 +40,11 @@ public class BookmarkProducer {
 
         try {
             kafkaTemplate.send(topic, event.getUserId(), message).get();
-        } catch (Exception e) {
+        } catch (ExecutionException e) {
             throw new KafkaPublishException("Failed to publish bookmark event", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new KafkaPublishException("Interrupted while publishing bookmark event", e);
         }
     }
 }

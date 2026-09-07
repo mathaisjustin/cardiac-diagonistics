@@ -22,11 +22,11 @@ public class KafkaConsumerConfig {
     public DefaultErrorHandler kafkaErrorHandler() {
 
         DefaultErrorHandler errorHandler = new DefaultErrorHandler(
-                (record, exception) -> log.error(
+                (consumerRecord, exception) -> log.error(
                         "Giving up on Kafka record from topic '{}' partition {} offset {}: {}",
-                        record.topic(),
-                        record.partition(),
-                        record.offset(),
+                        consumerRecord.topic(),
+                        consumerRecord.partition(),
+                        consumerRecord.offset(),
                         exception.getMessage(),
                         exception
                 ),

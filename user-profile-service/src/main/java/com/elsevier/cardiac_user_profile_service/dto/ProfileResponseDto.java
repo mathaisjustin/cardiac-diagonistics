@@ -20,6 +20,7 @@ public class ProfileResponseDto {
     private LocalDateTime createdAt;
 
 
+    // Required by Jackson for deserialization.
     public ProfileResponseDto() {
     }
 

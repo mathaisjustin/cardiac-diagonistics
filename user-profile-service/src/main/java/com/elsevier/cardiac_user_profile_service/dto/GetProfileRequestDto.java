@@ -6,6 +6,7 @@ public class GetProfileRequestDto {
     private String email;
 
 
+    // Required by Jackson for deserialization.
     public GetProfileRequestDto() {
     }
 

@@ -11,6 +11,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -64,7 +65,7 @@ class RefreshTokenServiceTest {
         RefreshToken stored = new RefreshToken();
         stored.setUserId("user-123");
         stored.setRevoked(false);
-        stored.setExpiresAt(LocalDateTime.now().plusDays(1));
+        stored.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusDays(1));
 
         when(refreshTokenRepository.findByTokenHash(anyString()))
                 .thenReturn(Optional.of(stored));
@@ -88,7 +89,7 @@ class RefreshTokenServiceTest {
     void validateRefreshTokenRejectsARevokedToken() {
         RefreshToken stored = new RefreshToken();
         stored.setRevoked(true);
-        stored.setExpiresAt(LocalDateTime.now().plusDays(1));
+        stored.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).plusDays(1));
 
         when(refreshTokenRepository.findByTokenHash(anyString()))
                 .thenReturn(Optional.of(stored));
@@ -102,7 +103,7 @@ class RefreshTokenServiceTest {
     void validateRefreshTokenRejectsAnExpiredToken() {
         RefreshToken stored = new RefreshToken();
         stored.setRevoked(false);
-        stored.setExpiresAt(LocalDateTime.now().minusSeconds(1));
+        stored.setExpiresAt(LocalDateTime.now(ZoneOffset.UTC).minusSeconds(1));
 
         when(refreshTokenRepository.findByTokenHash(anyString()))
                 .thenReturn(Optional.of(stored));

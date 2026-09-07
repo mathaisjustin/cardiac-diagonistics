@@ -15,7 +15,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
@@ -104,15 +103,13 @@ public class DiagnosisController {
                     + "Requires the caller to be authenticated (X-User-Id forwarded by the "
                     + "Gateway) - returns 401 for anonymous callers."
     )
-    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Matching diagnosis records",
                     content = @Content(array = @io.swagger.v3.oas.annotations.media.ArraySchema(
-                            schema = @Schema(implementation = Diagnosis.class)))),
+                            schema = @Schema(implementation = Diagnosis.class))))
             @ApiResponse(responseCode = "400", description = "No filter supplied, or an invalid "
-                    + "gender/painType/range value", content = @Content),
+                    + "gender/painType/range value", content = @Content)
             @ApiResponse(responseCode = "401", description = "X-User-Id header missing - login required",
                     content = @Content)
-    })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/search")
     public List<Diagnosis> search(
@@ -180,14 +177,12 @@ public class DiagnosisController {
                     + "authenticated (X-User-Id forwarded by the Gateway) - returns 401 for "
                     + "anonymous callers."
     )
-    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Treatment breakdown by group",
-                    content = @Content(schema = @Schema(implementation = AnalysisResult.class))),
+                    content = @Content(schema = @Schema(implementation = AnalysisResult.class)))
             @ApiResponse(responseCode = "400", description = "by must be one of: age, gender, painType",
-                    content = @Content),
+                    content = @Content)
             @ApiResponse(responseCode = "401", description = "X-User-Id header missing - login required",
                     content = @Content)
-    })
     @SecurityRequirement(name = "bearerAuth")
     @GetMapping("/analysis")
     public AnalysisResult analyze(
@@ -208,7 +203,7 @@ public class DiagnosisController {
         return diagnosisService.analyzeByCharacteristic(by);
     }
 
-    // POST /diagnosis/{id}/bookmark
+    // Bookmark a diagnosis record by id
     // Registered users only. Publishes a BookmarkEvent to Kafka for Bookmark
     // Service to consume and save - this route doesn't touch a database itself.
     @Operation(
@@ -219,13 +214,11 @@ public class DiagnosisController {
                     + "that the bookmark is saved yet. Requires the caller to be authenticated "
                     + "(X-User-Id forwarded by the Gateway) - returns 401 for anonymous callers."
     )
-    @ApiResponses({
-            @ApiResponse(responseCode = "202", description = "Bookmark request accepted for async processing"),
+            @ApiResponse(responseCode = "202", description = "Bookmark request accepted for async processing")
             @ApiResponse(responseCode = "401", description = "X-User-Id header missing - login required",
-                    content = @Content),
+                    content = @Content)
             @ApiResponse(responseCode = "404", description = "No diagnosis record with the given id",
                     content = @Content)
-    })
     @SecurityRequirement(name = "bearerAuth")
     @PostMapping("/{id}/bookmark")
     @ResponseStatus(HttpStatus.ACCEPTED)
@@ -247,7 +240,7 @@ public class DiagnosisController {
         );
     }
 
-    // GET /diagnosis/{id}
+    // Fetch a single diagnosis record by id
     @Operation(
             summary = "Get a single diagnosis record",
             description = "Returns the full record (including treatment) if the caller is "
@@ -255,13 +248,11 @@ public class DiagnosisController {
                     + "view (treatment omitted) for anonymous callers. Public - no identity "
                     + "header required, but the response shape differs based on it."
     )
-    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Diagnosis record - full detail when "
                     + "authenticated, public detail (no treatment) when anonymous",
-                    content = @Content(schema = @Schema(oneOf = {Diagnosis.class, DiagnosisPublicDetail.class}))),
+                    content = @Content(schema = @Schema(oneOf = {Diagnosis.class, DiagnosisPublicDetail.class})))
             @ApiResponse(responseCode = "404", description = "No diagnosis record with the given id",
                     content = @Content)
-    })
     @GetMapping("/{id}")
     public Object getDiagnosisById(
             @Parameter(description = "Diagnosis record id", example = "1", required = true)

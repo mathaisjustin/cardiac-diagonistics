@@ -84,9 +84,9 @@ class BookmarkProducerIT {
         records.forEach(received::add);
 
         assertThat(received).hasSize(1);
-        ConsumerRecord<String, String> record = received.get(0);
-        assertThat(record.key()).isEqualTo("user-1");
-        assertThat(record.value())
+        ConsumerRecord<String, String> consumerRecord = received.get(0);
+        assertThat(consumerRecord.key()).isEqualTo("user-1");
+        assertThat(consumerRecord.value())
                 .contains("\"diagnosisId\":\"1\"")
                 .contains("\"gender\":\"Male\"");
     }

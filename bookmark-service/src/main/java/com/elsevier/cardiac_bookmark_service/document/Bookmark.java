@@ -5,6 +5,7 @@ import org.springframework.data.mongodb.core.index.CompoundIndex;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
 @Document(collection = "bookmarks")
@@ -26,6 +27,7 @@ public class Bookmark {
     private LocalDateTime createdAt;
 
 
+    // Required by Spring Data MongoDB for document instantiation.
     public Bookmark() {
     }
 
@@ -37,7 +39,7 @@ public class Bookmark {
         bookmark.id = UUID.randomUUID().toString();
         bookmark.userId = userId;
         bookmark.diagnosisId = diagnosisId;
-        bookmark.createdAt = LocalDateTime.now();
+        bookmark.createdAt = LocalDateTime.now(ZoneOffset.UTC);
 
         return bookmark;
     }

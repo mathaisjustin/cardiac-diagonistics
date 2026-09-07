@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.springframework.http.ResponseEntity;
@@ -50,11 +49,9 @@ public class ProfileController {
             description = "Looks up the profile for the caller identified by the X-User-Id / "
                     + "X-User-Email headers forwarded by the Gateway."
     )
-    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Profile found",
-                    content = @Content(schema = @Schema(implementation = ProfileResponseDto.class))),
+                    content = @Content(schema = @Schema(implementation = ProfileResponseDto.class)))
             @ApiResponse(responseCode = "404", description = "No profile for this user", content = @Content)
-    })
     @GetMapping
     public ResponseEntity<ProfileResponseDto> getProfile(
 
@@ -85,12 +82,10 @@ public class ProfileController {
             description = "Updates the profile for the caller identified by the X-User-Id / "
                     + "X-User-Email headers forwarded by the Gateway."
     )
-    @ApiResponses({
             @ApiResponse(responseCode = "200", description = "Profile updated",
-                    content = @Content(schema = @Schema(implementation = ProfileResponseDto.class))),
-            @ApiResponse(responseCode = "400", description = "Validation failed", content = @Content),
+                    content = @Content(schema = @Schema(implementation = ProfileResponseDto.class)))
+            @ApiResponse(responseCode = "400", description = "Validation failed", content = @Content)
             @ApiResponse(responseCode = "404", description = "No profile for this user", content = @Content)
-    })
     @PutMapping
     public ResponseEntity<ProfileResponseDto> updateProfile(
 

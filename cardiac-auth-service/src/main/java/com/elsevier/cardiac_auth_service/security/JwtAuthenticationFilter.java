@@ -40,7 +40,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         if (jwtService.isTokenValid(token)) {
 
             String userId = jwtService.extractUserId(token);
-//            String email = jwtService.extractEmail(token);
 
             var authentication =
                     new org.springframework.security.authentication.UsernamePasswordAuthenticationToken(

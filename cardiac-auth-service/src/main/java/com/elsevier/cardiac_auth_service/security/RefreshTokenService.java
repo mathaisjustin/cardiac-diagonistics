@@ -12,6 +12,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Base64;
 
 @Service
@@ -44,7 +45,7 @@ public class RefreshTokenService {
                 .withoutPadding()
                 .encodeToString(randomBytes);
 
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneOffset.UTC);
 
         RefreshToken refreshToken = new RefreshToken();
 
@@ -91,7 +92,7 @@ public class RefreshTokenService {
             throw new InvalidRefreshTokenException("Refresh token has been revoked");
         }
 
-        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (refreshToken.getExpiresAt().isBefore(LocalDateTime.now(ZoneOffset.UTC))) {
             throw new InvalidRefreshTokenException("Refresh token has expired");
         }
 

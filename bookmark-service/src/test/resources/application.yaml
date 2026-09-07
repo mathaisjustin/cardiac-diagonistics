@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: cardiac-bookmark-service
+
+  kafka:
+    # Deliberately unreachable - tests must never talk to a real Kafka broker (e.g. the one
+    # docker-compose runs on the real 9092 for local dev). Spring Kafka connects lazily, so
+    # this doesn't block a plain context-load test.
+    bootstrap-servers: localhost:19999
+
+server:
+  port: 0
+
+jwt:
+  secret: test-only-secret-never-use-in-production-1234567890
+
+bookmark:
+  kafka:
+    topic: bookmark.created
+  cache:
+    ttl-seconds: 300
+
+eureka:
+  client:
+    enabled: false

@@ -18,6 +18,7 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+    private static final String MESSAGE_KEY = "message";
 
     @ExceptionHandler(EmailAlreadyExistsException.class)
     public ResponseEntity<Map<String, String>> handleEmailAlreadyExists(
@@ -25,7 +26,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.CONFLICT)
-                .body(Map.of("message", exception.getMessage()));
+                .body(Map.of(MESSAGE_KEY, exception.getMessage()));
     }
 
     @ExceptionHandler(InvalidCredentialsException.class)
@@ -34,7 +35,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("message", exception.getMessage()));
+                .body(Map.of(MESSAGE_KEY, exception.getMessage()));
     }
 
 
@@ -44,7 +45,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.UNAUTHORIZED)
-                .body(Map.of("message", exception.getMessage()));
+                .body(Map.of(MESSAGE_KEY, exception.getMessage()));
     }
 
 
@@ -54,7 +55,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", "Request body is required"));
+                .body(Map.of(MESSAGE_KEY, "Request body is required"));
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -74,7 +75,7 @@ public class GlobalExceptionHandler {
 
         Map<String, Object> response = new LinkedHashMap<>();
 
-        response.put("message", "Validation failed");
+        response.put(MESSAGE_KEY, "Validation failed");
         response.put("validationErrors", validationErrors);
 
         return ResponseEntity
@@ -82,13 +83,13 @@ public class GlobalExceptionHandler {
                 .body(response);
     }
     @ExceptionHandler(KafkaPublishException.class)
-    public ResponseEntity<?> handleKafkaPublishException(
+    public ResponseEntity<Map<String, String>> handleKafkaPublishException(
             KafkaPublishException exception) {
 
         return ResponseEntity
                 .status(HttpStatus.SERVICE_UNAVAILABLE)
                 .body(Map.of(
-                        "message",
+                        MESSAGE_KEY,
                         "Registration failed because the messaging service is unavailable"
                 ));
     }
@@ -99,7 +100,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", exception.getMessage()));
+                .body(Map.of(MESSAGE_KEY, exception.getMessage()));
     }
 
     @ExceptionHandler(UserNotFoundException.class)
@@ -108,7 +109,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.NOT_FOUND)
-                .body(Map.of("message", exception.getMessage()));
+                .body(Map.of(MESSAGE_KEY, exception.getMessage()));
     }
 
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
@@ -117,7 +118,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(Map.of("message", "Invalid value for parameter: " + exception.getName()));
+                .body(Map.of(MESSAGE_KEY, "Invalid value for parameter: " + exception.getName()));
     }
 
     @ExceptionHandler(DataAccessException.class)
@@ -128,7 +129,7 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("message", "A database error occurred"));
+                .body(Map.of(MESSAGE_KEY, "A database error occurred"));
     }
 
     @ExceptionHandler(Exception.class)
@@ -139,6 +140,6 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(Map.of("message", "An unexpected error occurred"));
+                .body(Map.of(MESSAGE_KEY, "An unexpected error occurred"));
     }
 }

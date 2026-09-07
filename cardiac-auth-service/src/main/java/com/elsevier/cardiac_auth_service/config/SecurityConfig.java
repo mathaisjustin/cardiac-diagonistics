@@ -34,7 +34,12 @@ public class SecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-                .csrf(csrf -> csrf.disable())
+                // Safe here: this API is stateless (SessionCreationPolicy.STATELESS below) and
+                // authenticates every request via a bearer JWT, not a browser-managed session
+                // cookie - CSRF exploits rely on the browser auto-attaching credentials the
+                // attacker's page can't read, which doesn't apply when there's no cookie/session
+                // to ride on.
+                .csrf(csrf -> csrf.disable()) //NOSONAR - stateless bearer-JWT API, not cookie/session-based
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
                                 SessionCreationPolicy.STATELESS

@@ -78,7 +78,10 @@ class ProfileRepositoryIT {
         Profile saved = profileRepository.saveAndFlush(newProfile("user-3"));
         var firstUpdatedAt = saved.getUpdatedAt();
 
-        Thread.sleep(10);
+        // Not waiting on an async condition - LocalDateTime.now() has coarser-than-nanosecond
+        // resolution on some platforms, so this just guarantees the second saveAndFlush's
+        // updatedAt is measurably later than the first.
+        Thread.sleep(10); //NOSONAR - deliberate delay for timestamp-ordering assertion, not async polling
         saved.setDepartment("Neurology");
         // saveAndFlush (not save) - plain save() only schedules the update for the next
         // flush, so @PreUpdate wouldn't have run yet and updatedAt would still read back
