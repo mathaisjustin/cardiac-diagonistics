@@ -28,3 +28,12 @@ eureka:
   instance:
     prefer-ip-address: true
     hostname: ${EUREKA_INSTANCE_HOSTNAME:localhost}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
