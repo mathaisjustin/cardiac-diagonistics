@@ -12,8 +12,12 @@ FROM eclipse-temurin:17-jre
 
 WORKDIR /app
 
+RUN addgroup --system spring && adduser --system --ingroup spring spring
+
 COPY --from=build /build/target/eureka-service.jar app.jar
 
 EXPOSE 8761
+
+USER spring:spring
 
 ENTRYPOINT ["java", "-jar", "app.jar"]

@@ -126,6 +126,11 @@ services:
       EUREKA_INSTANCE_HOSTNAME: cardiac-auth-service
     networks:
       - cardiac-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8081/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       mysql:
         condition: service_healthy
@@ -153,6 +158,11 @@ services:
       EUREKA_INSTANCE_HOSTNAME: cardiac-user-profile-service
     networks:
       - cardiac-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       mysql:
         condition: service_healthy
@@ -177,6 +187,11 @@ services:
       EUREKA_INSTANCE_HOSTNAME: cardiac-diagnosis-service
     networks:
       - cardiac-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8083/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       diagnosis-api:
         condition: service_started
@@ -207,6 +222,11 @@ services:
       EUREKA_INSTANCE_HOSTNAME: cardiac-bookmark-service
     networks:
       - cardiac-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8082/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       mongo:
         condition: service_healthy
@@ -231,6 +251,11 @@ services:
       EUREKA_INSTANCE_HOSTNAME: cardiac-api-gateway
     networks:
       - cardiac-net
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:9090/actuator/health || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
     depends_on:
       eureka:
         condition: service_healthy
@@ -257,6 +282,21 @@ services:
       api-gateway:
         condition: service_started
 
+  sonarqube:
+    image: sonarqube:community
+    container_name: cardiac-sonarqube
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+    environment:
+      SONAR_ES_BOOTSTRAP_CHECKS_DISABLE: "true"
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_logs:/opt/sonarqube/logs
+      - sonarqube_extensions:/opt/sonarqube/extensions
+    networks:
+      - cardiac-net
+
 networks:
   cardiac-net:
     name: cardiac-net
@@ -266,3 +306,6 @@ volumes:
   kafka_data:
   mongo_data:
   redis_data:
+  sonarqube_data:
+  sonarqube_logs:
+  sonarqube_extensions:
