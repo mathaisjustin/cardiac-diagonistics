@@ -55,4 +55,7 @@ jobs:
             -Dsonar.sources=cardiac-auth-service/src/main,user-profile-service/src/main,cardiac-diagnosis-service/src/main,bookmark-service/src/main
             -Dsonar.tests=cardiac-auth-service/src/test,user-profile-service/src/test,cardiac-diagnosis-service/src/test,bookmark-service/src/test
             -Dsonar.java.binaries=cardiac-auth-service/target/classes,user-profile-service/target/classes,cardiac-diagnosis-service/target/classes,bookmark-service/target/classes
+            -Dsonar.java.test.binaries=cardiac-auth-service/target/test-classes,user-profile-service/target/test-classes,cardiac-diagnosis-service/target/test-classes,bookmark-service/target/test-classes
+            -Dsonar.java.libraries=**/target/classes,${{ env.HOME }}/.m2/repository/**/*.jar
+            -Dsonar.java.test.libraries=**/target/test-classes,${{ env.HOME }}/.m2/repository/**/*.jar
             -Dsonar.coverage.jacoco.xmlReportPaths=cardiac-auth-service/target/site/jacoco/jacoco.xml,user-profile-service/target/site/jacoco/jacoco.xml,cardiac-diagnosis-service/target/site/jacoco/jacoco.xml,bookmark-service/target/site/jacoco/jacoco.xml
