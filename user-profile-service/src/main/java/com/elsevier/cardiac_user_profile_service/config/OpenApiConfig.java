@@ -1,9 +1,10 @@
-package com.elsevier.cardiac.diagnosis.service.config;
+package com.elsevier.cardiac_user_profile_service.config;
 
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import io.swagger.v3.oas.models.servers.Server;
 import org.springframework.context.annotation.Bean;
@@ -15,7 +16,7 @@ import java.util.List;
  * Swagger/OpenAPI metadata only - no routes, filters, or business behavior are
  * touched here. springdoc-openapi auto-generates the spec and UI from the
  * existing @RestController/@GetMapping/etc. annotations already on
- * DiagnosisController; this bean just supplies the descriptive header
+ * ProfileController; this bean just supplies the descriptive header
  * (title/version/description), a fixed gateway-relative server URL, and a
  * shared JWT Authorize scheme (same "bearerAuth" name used by every
  * service's docs, so the Authorize flow looks and works identically across
@@ -28,16 +29,17 @@ import java.util.List;
  * A relative URL is resolved by Swagger UI against the page's own origin
  * (the Gateway), so "Try it out" calls route back through the Gateway.
  *
- * It's "/api" rather than "/api/diagnosis" because DiagnosisController is
- * already @RequestMapping("/diagnosis") - that's already baked into every
+ * It's "/api" rather than "/api/profile" because ProfileController is
+ * already @RequestMapping("/profile") - that's already baked into every
  * documented operation, and the Gateway strips exactly one segment
- * ("/api") off /api/diagnosis/** before forwarding here. A server prefix
- * of "/api/diagnosis" would double up with the operation path (e.g.
- * /api/diagnosis/diagnosis/stats).
+ * ("/api") off /api/profile/** before forwarding here. A server prefix of
+ * "/api/profile" would double up with the operation path (e.g.
+ * /api/profile/profile).
  *
- * Note: most of this service's routes are public or best-effort identity
- * (see per-endpoint descriptions) - the Authorize button is offered for the
- * routes that do require it (/search, /analysis, /{id}/bookmark).
+ * Note: this service itself expects identity via X-User-Id/X-User-Email/
+ * X-Identity-Signature (set by the Gateway, not a raw JWT) - the Authorize
+ * button here documents the JWT you'd present to the Gateway, which is
+ * what actually produces those headers for you.
  *
  * Docs are served at:
  *   /v3/api-docs        - raw OpenAPI JSON
@@ -49,13 +51,12 @@ public class OpenApiConfig {
     private static final String BEARER_SCHEME = "bearerAuth";
 
     @Bean
-    public OpenAPI diagnosisServiceOpenApi() {
+    public OpenAPI userProfileServiceOpenApi() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Cardiac Diagnosis Service API")
+                        .title("Cardiac User Profile Service API")
                         .description(
-                                "Stateless service that proxies, filters, and analyzes cardiac "
-                                        + "diagnosis records sourced from the external Diagnosis API. "
+                                "Manages user profile data for the Cardiac Diagnostics System. "
                                         + "In production this service sits behind the API Gateway, which "
                                         + "authenticates the caller and forwards their identity via the "
                                         + "X-User-Id / X-User-Email / X-Identity-Signature headers "
@@ -73,6 +74,7 @@ public class OpenApiConfig {
                                 .bearerFormat("JWT")
                                 .description("Paste the accessToken returned by Auth Service's "
                                         + "/login here - the Gateway verifies it and forwards your "
-                                        + "identity to this service.")));
+                                        + "identity to this service.")))
+                .addSecurityItem(new SecurityRequirement().addList(BEARER_SCHEME));
     }
 }

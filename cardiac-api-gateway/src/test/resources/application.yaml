@@ -1,0 +1,13 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: cardiac-api-gateway
+
+jwt:
+  secret: test-only-secret-never-use-in-production-1234567890
+
+eureka:
+  client:
+    enabled: false

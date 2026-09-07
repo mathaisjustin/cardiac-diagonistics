@@ -1,14 +1,22 @@
 package com.elsevier.cardiac_user_profile_service.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.time.LocalDateTime;
 
 public class ProfileResponseDto {
 
+    @Schema(description = "Account email", example = "jane.doe@example.com")
     private String email;
+    @Schema(description = "First name", example = "Jane")
     private String firstName;
+    @Schema(description = "Last name", example = "Doe")
     private String lastName;
+    @Schema(description = "Contact phone number", example = "+1-555-0100")
     private String contact;
+    @Schema(description = "Department/team", example = "Cardiology")
     private String department;
+    @Schema(description = "Account creation timestamp")
     private LocalDateTime createdAt;
 
 

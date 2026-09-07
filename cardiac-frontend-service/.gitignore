@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Machine-local corporate/proxy root CA for Docker builds behind a
+# TLS-intercepting network - never commit this, it's specific to whoever's
+# building the image. See Dockerfile for how it's picked up if present.
+corporate-ca.pem
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

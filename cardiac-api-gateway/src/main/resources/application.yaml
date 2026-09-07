@@ -23,3 +23,10 @@ management:
   endpoint:
     health:
       show-details: always
+
+# Single merged Swagger UI page (no "Select a definition" dropdown) - all 4 downstream
+# services' endpoints combined into one document by AggregatedApiDocsController, grouped
+# visually by each service's own @Tag. See AggregatedApiDocsController's class Javadoc.
+springdoc:
+  swagger-ui:
+    url: /api-docs/unified

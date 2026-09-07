@@ -1,7 +1,9 @@
 package com.elsevier.cardiac_auth_service.dto;
 
+import io.swagger.v3.oas.annotations.media.Schema;
+
 public record ChangePasswordRequest(
-        String oldPassword,
-        String newPassword
+        @Schema(description = "Current password") String oldPassword,
+        @Schema(description = "New password to set") String newPassword
 ) {
 }
